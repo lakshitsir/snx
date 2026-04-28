@@ -1,15 +1,12 @@
 {
-  "name": "overlord-prime-v14",
-  "version": "14.0.0",
-  "description": "Apex Level AI Group Manager",
+  "name": "overlord-prime-v23",
+  "version": "23.0.0",
+  "description": "Supreme Apex AI Group Manager",
   "main": "api/bot.js",
   "scripts": {
     "start": "node api/bot.js"
   },
   "dependencies": {
     "telegraf": "^4.15.3"
-  },
-  "engines": {
-    "node": "20.x"
   }
 }
