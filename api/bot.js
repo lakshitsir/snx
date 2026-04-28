@@ -18,40 +18,40 @@ const isAuthorized = async (ctx, userId) => {
 };
 
 // ==========================================
-// 3. LAYER 1: LOCAL REGEX (Instant Admin Execution - No AI needed)
+// 3. LAYER 1: MASSIVE LOCAL REGEX (0ms Lag Execution)
 // ==========================================
 const getLocalCommand = (text) => {
     const t = text.toLowerCase();
     let act = null, ui = "";
 
-    if (t.match(/\b(ban|uda do|nikal|kick|hatao|block|dafa karo|bhaga do|terminate|exile)\b/)) { 
+    if (t.match(/\b(ban|uda|nikal|kick|hatao|block|dafa|bhaga|terminate|exile|rusticate|bahar|chutti|feko)\b/)) { 
         act = 'BAN'; ui = '<b>PROTOCOL: EXILE</b>\nTarget has been permanently terminated.'; 
     }
-    else if (t.match(/\b(unban|wapas laao|unblock|restore|maaf karo)\b/)) { 
+    else if (t.match(/\b(unban|wapas|unblock|restore|maaf|pardon|aane do)\b/)) { 
         act = 'UNBAN'; ui = '<b>PROTOCOL: RESTORE</b>\nTarget restriction lifted.'; 
     }
-    else if (t.match(/\b(mute|chup|thanda|aawaz band|shant|silence)\b/)) { 
+    else if (t.match(/\b(mute|chup|thanda|aawaz band|shant|silence|muh band|jubaan band|bakwas band)\b/)) { 
         act = 'MUTE'; ui = '<b>PROTOCOL: SILENCE</b>\nTarget vocal subroutines suspended.'; 
     }
-    else if (t.match(/\b(unmute|bolne do|wapas bolne do|unsilence)\b/)) { 
+    else if (t.match(/\b(unmute|bolne|unsilence|aawaz kholo|allow)\b/)) { 
         act = 'UNMUTE'; ui = '<b>PROTOCOL: RESTORE</b>\nCommunications link re-established.'; 
     }
-    else if (t.match(/\b(promote|admin bana|power do|superpower)\b/)) { 
+    else if (t.match(/\b(promote|admin bana|power do|superpower|elevate|rank up|make admin|sahab)\b/)) { 
         act = 'PROMOTE'; ui = '<b>PROTOCOL: ELEVATION</b>\nSecurity clearance upgraded to Admin.'; 
     }
-    else if (t.match(/\b(demote|power chheen|hatao admin)\b/)) { 
+    else if (t.match(/\b(demote|power chheen|hatao admin|strip|rank down|remove admin|power lelo)\b/)) { 
         act = 'DEMOTE'; ui = '<b>PROTOCOL: STRIP</b>\nAdministrative privileges revoked.'; 
     }
-    else if (t.match(/\b(delete|mita|delete kr|erase)\b/)) { 
+    else if (t.match(/\b(delete|mita|erase|remove message|clear msg|kachra hatao)\b/)) { 
         act = 'DELETE'; ui = '<b>PROTOCOL: ERASE</b>\nData fragment permanently deleted.'; 
     }
-    else if (t.match(/\b(pin|chipka|upar rakh|highlight)\b/)) { 
+    else if (t.match(/\b(pin|chipka|upar|highlight|top)\b/)) { 
         act = 'PIN'; ui = '<b>PROTOCOL: HIGHLIGHT</b>\nData fragment secured at top.'; 
     }
-    else if (t.match(/\b(unpin|hata de upar se|unhook)\b/)) { 
+    else if (t.match(/\b(unpin|hata de upar|unhook|niche)\b/)) { 
         act = 'UNPIN'; ui = '<b>PROTOCOL: UNHOOK</b>\nData fragment detached.'; 
     }
-    else if (t.match(/\b(purge|kachra saaf|destroy all)\b/)) { 
+    else if (t.match(/\b(purge|kachra saaf|destroy|clear all)\b/)) { 
         act = 'PURGE'; ui = '<b>PROTOCOL: PURGE</b>\nData erased and target exiled.'; 
     }
 
@@ -59,30 +59,39 @@ const getLocalCommand = (text) => {
 };
 
 // ==========================================
-// 4. LAYER 2: SUPREME AI (Stable Endpoint for Chats & Complex Intends)
+// 4. LAYER 2: CUSTOM API WITH COMMAND INJECTION
 // ==========================================
-const callSupremeAI = async (userText) => {
-    const sys = `You are 'Overlord', a cold, professional Telegram AI. NO emojis. Never say 'Lakshit'.
-    TASK 1: If user requests an admin action (ban, mute, etc.), output ONLY:
-    [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: [NAME]</b>\n<Message>
+const callCustomAI = async (userText) => {
+    // Injecting command logic into your custom API prompt
+    const injectedPrompt = `You are 'Overlord', a cold Telegram AI. No emojis. 
+    TASK 1: If user requests admin action (ban, mute, etc.) even using slang, output EXACTLY:
+    [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Action Message>
     Codes: BAN, UNBAN, KICK, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, PURGE.
-    TARGET_ID: Extract numeric ID if present, else 'REPLY'.
-    TASK 2: If normal Q&A, reply intelligently without [CODE].`;
+    TARGET_ID: Numeric ID if present, else 'REPLY'.
+    TASK 2: If normal Q&A, reply naturally as yourself.
+    User Text: ${userText}`;
 
-    // Raw, stable GET endpoint. No model parameters to avoid backend crashes.
-    const url = `https://text.pollinations.ai/${encodeURIComponent(sys + "\n\nUser: " + userText)}`;
+    const url = `https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(injectedPrompt)}`;
 
     try {
-        const response = await fetch(url, { signal: AbortSignal.timeout(12000) });
+        const response = await fetch(url, { signal: AbortSignal.timeout(18000) });
         if (!response.ok) throw new Error("API Limit");
-        return (await response.text()).replace(/```html|```/gi, '').trim();
+        
+        let data = await response.text();
+        try {
+            const parsed = JSON.parse(data);
+            if (parsed.response) data = parsed.response;
+            else if (parsed.message) data = parsed.message;
+        } catch (err) {} 
+
+        return data.replace(/```html|```/gi, '').trim();
     } catch (e) {
-        return "<b>SYSTEM ALERT</b>\nNeural link disrupted. Traffic overload.";
+        return "<b>SYSTEM ALERT</b>\nProprietary neural link disrupted. High latency detected.";
     }
 };
 
 // ==========================================
-// 5. CORE ROUTING & STRICT ADMIN EXECUTION
+// 5. CORE EXECUTION ENGINE
 // ==========================================
 bot.on('text', async (ctx, next) => {
     const text = ctx.message.text;
@@ -95,25 +104,28 @@ bot.on('text', async (ctx, next) => {
     const cleanText = text.replace(`@${ctx.botInfo.username}`, '').trim();
     const senderAdmin = await isAuthorized(ctx, ctx.from.id);
 
-    // Engine Resolver
+    // --- HYBRID ENGINE RESOLVER ---
     let actionData = getLocalCommand(cleanText); 
     let aiChatResponse = "";
 
+    // If Local misses it, trigger Custom API
     if (!actionData) {
-        const aiOutput = await callSupremeAI(cleanText);
+        const aiOutput = await callCustomAI(cleanText);
+        // Check if Custom API parsed an action
         if (aiOutput.includes('[') && aiOutput.includes('|') && aiOutput.includes('||')) {
             const [meta, uiMsg] = aiOutput.split('||');
             const [act, val, aiTargetId] = meta.replace('[', '').replace(']', '').split('|');
             actionData = { act: act.trim(), val: val ? val.trim() : '0', ui: uiMsg.trim(), aiTargetId: aiTargetId?.trim() };
         } else {
-            aiChatResponse = aiOutput; 
+            // Otherwise, it's pure chat
+            aiChatResponse = aiOutput;
         }
     }
 
-    // --- ABSOLUTE ADMIN LOCK FOR ALL ACTIONS ---
+    // --- ABSOLUTE ADMIN EXECUTION ---
     if (actionData) {
         if (!senderAdmin) {
-            return ctx.reply(`<b>SYSTEM ALERT</b>\nClearance denied. Only designated Admins can execute system directives.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+            return ctx.reply(`<b>SYSTEM ALERT</b>\nClearance denied. Admins only.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
 
         let finalTargetId = null;
@@ -133,17 +145,15 @@ bot.on('text', async (ctx, next) => {
 
         const targetAdmin = finalTargetId ? await isAuthorized(ctx, finalTargetId) : false;
 
-        // Protection against banning other admins
         if (targetAdmin && ['BAN', 'KICK', 'MUTE', 'DEMOTE', 'PURGE'].includes(actionData.act)) {
             return ctx.reply(`<b>MATRIX OVERRIDE</b>\nTarget holds Admin clearance. Directive nullified.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
 
         try {
-            const until = parseInt(actionData.val) > 0 ? Math.floor(Date.now() / 1000) + parseInt(actionData.val) : 0;
             switch (actionData.act) {
                 case 'BAN': await ctx.banChatMember(finalTargetId); break;
                 case 'UNBAN': await ctx.unbanChatMember(finalTargetId, { only_if_banned: true }); break;
-                case 'MUTE': await ctx.restrictChatMember(finalTargetId, { can_send_messages: false }, until > 0 ? { until_date: until } : {}); break;
+                case 'MUTE': await ctx.restrictChatMember(finalTargetId, { can_send_messages: false }); break;
                 case 'UNMUTE': await ctx.restrictChatMember(finalTargetId, { can_send_messages: true, can_send_media_messages: true, can_send_other_messages: true, can_add_web_page_previews: true }); break;
                 case 'PROMOTE': await ctx.promoteChatMember(finalTargetId, { can_change_info: true, can_delete_messages: true, can_invite_users: true, can_restrict_members: true, can_pin_messages: true }); break;
                 case 'DEMOTE': await ctx.promoteChatMember(finalTargetId, { can_change_info: false, can_delete_messages: false, can_invite_users: false, can_restrict_members: false, can_pin_messages: false }); break;
@@ -154,11 +164,11 @@ bot.on('text', async (ctx, next) => {
             }
             return ctx.reply(`${actionData.ui}${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         } catch (err) {
-            return ctx.reply(`<b>SYSTEM ERROR</b>\nExecution failed. Ensure bot has proper Admin permissions.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+            return ctx.reply(`<b>SYSTEM ERROR</b>\nExecution failed. Verify Bot Administrator permissions.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
     }
 
-    // --- AI Q&A CHAT EXECUTION (Open to all, but only for Chatting) ---
+    // --- PROPRIETARY AI CHAT EXECUTION ---
     if (aiChatResponse) {
         return ctx.reply(`${aiChatResponse}${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
     }
@@ -179,9 +189,9 @@ module.exports = async (req, res) => {
             await bot.handleUpdate(req.body);
             return res.status(200).send('OK');
         }
-        res.status(200).send('OVERLORD V21 Apex Core Online.');
+        res.status(200).send('OVERLORD V23 Pinnacle Core Online.');
     } catch (e) {
         return res.status(200).send('OK');
     }
 };
-            
+                                                                        
