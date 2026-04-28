@@ -8,7 +8,7 @@ const DEV_TAG = "\n\nDeveloper @lakshitpatidar";
 const processedUpdates = new Set();
 
 // ==========================================
-// 2. MATRIX AUTHORIZATION
+// 2. ABSOLUTE MATRIX AUTHORIZATION
 // ==========================================
 const isAuthorized = async (ctx, userId) => {
     try {
@@ -18,50 +18,40 @@ const isAuthorized = async (ctx, userId) => {
 };
 
 // ==========================================
-// 3. LAYER 1: MASSIVE REGEX MATRIX (0ms Lag)
+// 3. LAYER 1: LOCAL REGEX (Instant Admin Execution - No AI needed)
 // ==========================================
 const getLocalCommand = (text) => {
     const t = text.toLowerCase();
     let act = null, ui = "";
 
-    // Massive Dictionary for BAN / KICK
-    if (t.match(/\b(ban|uda do|nikal|kick|hatao|block|dafa karo|bhaga do|hamesha ke liye nikal|exile|terminate|bahar feko|remove)\b/)) { 
+    if (t.match(/\b(ban|uda do|nikal|kick|hatao|block|dafa karo|bhaga do|terminate|exile)\b/)) { 
         act = 'BAN'; ui = '<b>PROTOCOL: EXILE</b>\nTarget has been permanently terminated.'; 
     }
-    // Massive Dictionary for UNBAN
-    else if (t.match(/\b(unban|wapas laao|unblock|maaf karo|restore|pardon|wapas aane do)\b/)) { 
+    else if (t.match(/\b(unban|wapas laao|unblock|restore|maaf karo)\b/)) { 
         act = 'UNBAN'; ui = '<b>PROTOCOL: RESTORE</b>\nTarget restriction lifted.'; 
     }
-    // Massive Dictionary for MUTE
-    else if (t.match(/\b(mute|chup|thanda|aawaz band|shant|silence|muh band|jubaan band|bolna band)\b/)) { 
+    else if (t.match(/\b(mute|chup|thanda|aawaz band|shant|silence)\b/)) { 
         act = 'MUTE'; ui = '<b>PROTOCOL: SILENCE</b>\nTarget vocal subroutines suspended.'; 
     }
-    // Massive Dictionary for UNMUTE
-    else if (t.match(/\b(unmute|bolne do|wapas bolne do|aawaz kholo|unsilence|shanti khatam)\b/)) { 
+    else if (t.match(/\b(unmute|bolne do|wapas bolne do|unsilence)\b/)) { 
         act = 'UNMUTE'; ui = '<b>PROTOCOL: RESTORE</b>\nCommunications link re-established.'; 
     }
-    // Massive Dictionary for PROMOTE
-    else if (t.match(/\b(promote|admin bana|power do|superpower dedo|rank up|elevate|make admin|bade sahab)\b/)) { 
+    else if (t.match(/\b(promote|admin bana|power do|superpower)\b/)) { 
         act = 'PROMOTE'; ui = '<b>PROTOCOL: ELEVATION</b>\nSecurity clearance upgraded to Admin.'; 
     }
-    // Massive Dictionary for DEMOTE
-    else if (t.match(/\b(demote|power chheen|hatao admin|rank down|strip power|remove admin|power khatam)\b/)) { 
+    else if (t.match(/\b(demote|power chheen|hatao admin)\b/)) { 
         act = 'DEMOTE'; ui = '<b>PROTOCOL: STRIP</b>\nAdministrative privileges revoked.'; 
     }
-    // Massive Dictionary for DELETE
-    else if (t.match(/\b(delete|mita|delete kr|erase|remove message|kachra hatao|gayab kar)\b/)) { 
+    else if (t.match(/\b(delete|mita|delete kr|erase)\b/)) { 
         act = 'DELETE'; ui = '<b>PROTOCOL: ERASE</b>\nData fragment permanently deleted.'; 
     }
-    // Massive Dictionary for PIN
-    else if (t.match(/\b(pin|chipka|upar rakh|highlight|top pe laga|board pe laga)\b/)) { 
+    else if (t.match(/\b(pin|chipka|upar rakh|highlight)\b/)) { 
         act = 'PIN'; ui = '<b>PROTOCOL: HIGHLIGHT</b>\nData fragment secured at top.'; 
     }
-    // Massive Dictionary for UNPIN
-    else if (t.match(/\b(unpin|hata de upar se|unhook|niche utar)\b/)) { 
-        act = 'UNPIN'; ui = '<b>PROTOCOL: UNHOOK</b>\nData fragment detached from highlights.'; 
+    else if (t.match(/\b(unpin|hata de upar se|unhook)\b/)) { 
+        act = 'UNPIN'; ui = '<b>PROTOCOL: UNHOOK</b>\nData fragment detached.'; 
     }
-    // Massive Dictionary for PURGE (Delete + Ban)
-    else if (t.match(/\b(purge|kachra saaf|destroy all|mita ke bhagao)\b/)) { 
+    else if (t.match(/\b(purge|kachra saaf|destroy all)\b/)) { 
         act = 'PURGE'; ui = '<b>PROTOCOL: PURGE</b>\nData erased and target exiled.'; 
     }
 
@@ -69,46 +59,35 @@ const getLocalCommand = (text) => {
 };
 
 // ==========================================
-// 4. LAYER 2: SUPREME AI ENGINE (Fallback & Q&A)
+// 4. LAYER 2: SUPREME AI (Stable Endpoint for Chats & Complex Intends)
 // ==========================================
 const callSupremeAI = async (userText) => {
-    const sys = `You are 'Overlord V20', a supreme, cold Telegram AI Manager. NO emojis.
-    Never mention 'Lakshit' or 'Kanu'. Understand ANY weird slang/language flawlessly.
-
-    TASK 1 (MODERATION FALLBACK): If the user is asking to take an action against someone (ban, mute, pin, promote, delete, etc.) but used weird words, you MUST translate their intent and output ONLY this:
-    [ACTION_CODE|PARAM|TARGET_ID] || <b>PROTOCOL: [NAME]</b>\n<Professional Message>
-    
+    const sys = `You are 'Overlord', a cold, professional Telegram AI. NO emojis. Never say 'Lakshit'.
+    TASK 1: If user requests an admin action (ban, mute, etc.), output ONLY:
+    [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: [NAME]</b>\n<Message>
     Codes: BAN, UNBAN, KICK, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, PURGE.
-    PARAM: Seconds for mute (e.g. 600), else 0.
-    TARGET_ID: Extract numeric ID from text if present, else output 'REPLY'.
-    
-    TASK 2 (Q&A): If the user is NOT taking an action, but just asking a question or chatting, answer directly and intelligently. NO [CODE] format. Use simple HTML.`;
+    TARGET_ID: Extract numeric ID if present, else 'REPLY'.
+    TASK 2: If normal Q&A, reply intelligently without [CODE].`;
+
+    // Raw, stable GET endpoint. No model parameters to avoid backend crashes.
+    const url = `https://text.pollinations.ai/${encodeURIComponent(sys + "\n\nUser: " + userText)}`;
 
     try {
-        const response = await fetch('https://text.pollinations.ai/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: [{ role: 'system', content: sys }, { role: 'user', content: userText }],
-                model: 'mistral' // Fast and uncensored
-            }),
-            signal: AbortSignal.timeout(12000)
-        });
-        if (!response.ok) throw new Error("API Failure");
+        const response = await fetch(url, { signal: AbortSignal.timeout(12000) });
+        if (!response.ok) throw new Error("API Limit");
         return (await response.text()).replace(/```html|```/gi, '').trim();
     } catch (e) {
-        return "<b>SYSTEM ALERT</b>\nNeural link disrupted. Processing locally.";
+        return "<b>SYSTEM ALERT</b>\nNeural link disrupted. Traffic overload.";
     }
 };
 
 // ==========================================
-// 5. CORE ROUTING & EXECUTION MATRIX
+// 5. CORE ROUTING & STRICT ADMIN EXECUTION
 // ==========================================
 bot.on('text', async (ctx, next) => {
     const text = ctx.message.text;
     const isReply = ctx.message.reply_to_message;
     
-    // Wake Word Trigger
     const trigger = /\b(ai|manager|helper|bot)\b/i;
     if (!trigger.test(text) && !text.includes(`@${ctx.botInfo.username}`) && !(isReply && isReply.from?.id === ctx.botInfo.id)) return next();
 
@@ -116,12 +95,10 @@ bot.on('text', async (ctx, next) => {
     const cleanText = text.replace(`@${ctx.botInfo.username}`, '').trim();
     const senderAdmin = await isAuthorized(ctx, ctx.from.id);
 
-    // --- EXECUTION RESOLVER (Hybrid Engine) ---
-    // 1. Try Local Dictionary first (Ultra Fast)
+    // Engine Resolver
     let actionData = getLocalCommand(cleanText); 
     let aiChatResponse = "";
 
-    // 2. If Local Dictionary fails, send to AI (Safety Net)
     if (!actionData) {
         const aiOutput = await callSupremeAI(cleanText);
         if (aiOutput.includes('[') && aiOutput.includes('|') && aiOutput.includes('||')) {
@@ -129,18 +106,19 @@ bot.on('text', async (ctx, next) => {
             const [act, val, aiTargetId] = meta.replace('[', '').replace(']', '').split('|');
             actionData = { act: act.trim(), val: val ? val.trim() : '0', ui: uiMsg.trim(), aiTargetId: aiTargetId?.trim() };
         } else {
-            aiChatResponse = aiOutput; // It's a normal chat question
+            aiChatResponse = aiOutput; 
         }
     }
 
-    // --- TACTICAL EXECUTION (Zero-Error Handling) ---
+    // --- ABSOLUTE ADMIN LOCK FOR ALL ACTIONS ---
     if (actionData) {
-        if (!senderAdmin) return ctx.reply(`<b>SYSTEM ALERT</b>\nClearance denied. Only Admins can execute directives.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+        if (!senderAdmin) {
+            return ctx.reply(`<b>SYSTEM ALERT</b>\nClearance denied. Only designated Admins can execute system directives.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+        }
 
         let finalTargetId = null;
         let targetMessage = isReply;
 
-        // Smart ID Extraction
         const idMatch = cleanText.match(/\b\d{8,15}\b/);
         if (idMatch) finalTargetId = parseInt(idMatch[0]);
         else if (actionData.aiTargetId && actionData.aiTargetId !== 'REPLY' && !isNaN(actionData.aiTargetId)) finalTargetId = parseInt(actionData.aiTargetId);
@@ -148,22 +126,20 @@ bot.on('text', async (ctx, next) => {
 
         const reqReply = ['PIN', 'UNPIN', 'DELETE', 'PURGE'];
         if (reqReply.includes(actionData.act) && !targetMessage) {
-            return ctx.reply(`<b>SYSTEM ALERT</b>\nDirective failed. You MUST reply to a message to use Pin/Delete.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+            return ctx.reply(`<b>SYSTEM ALERT</b>\nDirective failed. You MUST reply to a message to execute Pin/Delete.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         } else if (!finalTargetId && !reqReply.includes(actionData.act)) {
-            return ctx.reply(`<b>SYSTEM ALERT</b>\nTarget ID missing. Reply to a user OR type their numeric User ID.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+            return ctx.reply(`<b>SYSTEM ALERT</b>\nTarget ID missing. Reply to a user OR type their User ID.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
 
         const targetAdmin = finalTargetId ? await isAuthorized(ctx, finalTargetId) : false;
 
-        // Admin Protection Matrix
+        // Protection against banning other admins
         if (targetAdmin && ['BAN', 'KICK', 'MUTE', 'DEMOTE', 'PURGE'].includes(actionData.act)) {
             return ctx.reply(`<b>MATRIX OVERRIDE</b>\nTarget holds Admin clearance. Directive nullified.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
 
         try {
             const until = parseInt(actionData.val) > 0 ? Math.floor(Date.now() / 1000) + parseInt(actionData.val) : 0;
-            
-            // Core Action Switch
             switch (actionData.act) {
                 case 'BAN': await ctx.banChatMember(finalTargetId); break;
                 case 'UNBAN': await ctx.unbanChatMember(finalTargetId, { only_if_banned: true }); break;
@@ -177,44 +153,35 @@ bot.on('text', async (ctx, next) => {
                 case 'PURGE': await ctx.deleteMessage(targetMessage.message_id); await ctx.banChatMember(finalTargetId); break;
             }
             return ctx.reply(`${actionData.ui}${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
-            
         } catch (err) {
-            // Error Parsing Engine (No crashes ever)
-            let errMsg = "Execution failed. Verify bot permissions.";
-            if (err.message.includes("can't remove chat owner")) errMsg = "Cannot execute action against the Chat Owner.";
-            if (err.message.includes("USER_NOT_PARTICIPANT")) errMsg = "This User ID is not a participant of this group.";
-            if (err.message.includes("not enough rights")) errMsg = "I do not have sufficient admin rights to do this.";
-            
-            return ctx.reply(`<b>SYSTEM ERROR</b>\n${errMsg}${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+            return ctx.reply(`<b>SYSTEM ERROR</b>\nExecution failed. Ensure bot has proper Admin permissions.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
     }
 
-    // --- AI Q&A CHAT EXECUTION ---
+    // --- AI Q&A CHAT EXECUTION (Open to all, but only for Chatting) ---
     if (aiChatResponse) {
         return ctx.reply(`${aiChatResponse}${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
     }
 });
 
 // ==========================================
-// 6. ANTI-LOOP WEBHOOK (Vercel Optimized)
+// 6. ANTI-LOOP WEBHOOK
 // ==========================================
 module.exports = async (req, res) => {
     try {
         if (req.method === 'POST') {
             const updateId = req.body.update_id;
             if (updateId) {
-                if (processedUpdates.has(updateId)) return res.status(200).send('Duplicate Handled'); 
+                if (processedUpdates.has(updateId)) return res.status(200).send('OK'); 
                 processedUpdates.add(updateId);
                 if (processedUpdates.size > 500) processedUpdates.clear();
             }
-            // Vercel strict sync wait to prevent premature killing
             await bot.handleUpdate(req.body);
             return res.status(200).send('OK');
         }
-        res.status(200).send('OVERLORD V20 Apex Core Online.');
+        res.status(200).send('OVERLORD V21 Apex Core Online.');
     } catch (e) {
-        console.error("Vercel Level Error:", e);
-        return res.status(200).send('Error Safely Handled');
+        return res.status(200).send('OK');
     }
 };
-       
+            
