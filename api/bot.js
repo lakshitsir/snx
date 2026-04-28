@@ -10,7 +10,8 @@ const processedUpdates = new Set();
 const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/16.6 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) Chrome/119.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (X11; Linux x86_64) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) Version/17.1 Safari/604.1"
 ];
 const getRand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -31,6 +32,7 @@ const getLocalCommand = (text) => {
     const t = text.toLowerCase();
     let act = null, ui = "";
 
+    // 1. Reversals
     if (t.match(/\b(unban|ban hata|wapas|unblock|restore|maaf|pardon|aane do|chhod do|revert)\b/)) { 
         act = 'UNBAN'; ui = `<b>PROTOCOL: RESTORE</b>\n${getRand(['Target restriction lifted.', 'User pardoned.', 'Exile protocol reversed.'])}`; 
     }
@@ -43,6 +45,7 @@ const getLocalCommand = (text) => {
     else if (t.match(/\b(unwarn|warn hata|warning hata|galti maaf|chhod de)\b/)) { 
         act = 'UNWARN'; ui = `<b>PROTOCOL: PARDON</b>\n${getRand(['Warning revoked.', 'Target pardoned. Record cleared.'])}`; 
     }
+    // 2. Punishments & Actions
     else if (t.match(/\b(ban|uda|nikal|kick|hatao|block|dafa|bhaga|terminate|exile|rusticate|bahar|chutti|feko|gayab)\b/)) { 
         act = 'BAN'; ui = `<b>PROTOCOL: EXILE</b>\n${getRand(['Target has been permanently terminated.', 'User exiled from the matrix.'])}`; 
     }
@@ -75,63 +78,55 @@ const getLocalCommand = (text) => {
 };
 
 // ==========================================
-// 4. LAYER 2: DUAL-CORE AI ENGINE (Fail-Safe)
+// 4. LAYER 2: CUSTOM API WITH STEALTH FILTER
 // ==========================================
-// Helper to clean and verify AI responses
-const cleanResponse = (rawData) => {
-    let clean = rawData;
-    try {
-        const parsed = JSON.parse(rawData);
-        if (parsed.data) clean = parsed.data;
-        else if (parsed.response) clean = parsed.response;
-        else if (parsed.message) clean = parsed.message;
-    } catch (err) {} 
-    
-    clean = clean.replace(/(Powered by|Engineered by|Developer)\s*(@lakshitpatidar|@snxdad)/gi, '').trim();
-    clean = clean.replace(/```html|```/gi, '').trim();
-    clean = clean.replace(/[\r\n]+$/, '');
-    return clean;
-};
-
-// Checks if the response contains backend garbage
-const isCorrupted = (text) => {
-    return /(429|403|500|backend api|currently unavailable|too many requests|rate limit)/i.test(text);
-};
-
-const callCustomAI = async (userText) => {
-    const injectedPrompt = `You are 'Overlord', an elite AI. Created by Lakshit Patidar.
-    TASK 1: Admin commands (ban, mute) -> [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Action Message>
+const callCustomAI = async (userText, retries = 3) => {
+    const injectedPrompt = `You are 'Overlord', an elite AI Manager. 
+    TASK 1: If user asks for an admin action (ban, mute, warn, etc.), output EXACTLY:
+    [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Action Message>
     Codes: BAN, UNBAN, KICK, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, PURGE, WARN, UNWARN.
     TARGET_ID: Numeric ID if present, else 'REPLY'.
-    TASK 2: If normal Q&A, reply normally. User: ${userText}`;
+    TASK 2: If normal Q&A, reply normally.
+    User Text: ${userText}`;
 
-    // API 1: Your Custom API
-    const primaryUrl = `https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(injectedPrompt)}`;
-    // API 2: Pollinations Direct Fallback
-    const secondaryUrl = `https://text.pollinations.ai/${encodeURIComponent(injectedPrompt)}`;
+    const url = `https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(injectedPrompt)}`;
 
-    const agent = getRand(userAgents);
+    for (let i = 0; i < retries; i++) {
+        const spoofedAgent = getRand(userAgents);
+        try {
+            const response = await fetch(url, { 
+                headers: { 'User-Agent': spoofedAgent },
+                signal: AbortSignal.timeout(12000) 
+            });
+            
+            if (!response.ok) throw new Error(`HTTP Error`); 
+            
+            let rawData = await response.text();
+            
+            try {
+                const parsed = JSON.parse(rawData);
+                if (parsed.data) rawData = parsed.data;
+                else if (parsed.response) rawData = parsed.response;
+                else if (parsed.message) rawData = parsed.message;
+            } catch (err) {} 
+            
+            let cleanResponse = rawData.replace(/(Powered by|Engineered by|Developer)\s*(@lakshitpatidar|@snxdad)/gi, '').trim();
+            cleanResponse = cleanResponse.replace(/```html|```/gi, '').trim();
+            cleanResponse = cleanResponse.replace(/[\r\n]+$/, '');
 
-    // --- TRY 1: PRIMARY API ---
-    try {
-        const res1 = await fetch(primaryUrl, { headers: { 'User-Agent': agent }, signal: AbortSignal.timeout(6000) });
-        if (res1.ok) {
-            let data1 = cleanResponse(await res1.text());
-            if (!isCorrupted(data1)) return data1; // If clean, return it immediately.
+            if (cleanResponse.includes('429') || cleanResponse.toLowerCase().includes('unavailable') || cleanResponse.includes('Status:')) {
+                return "<b>SYSTEM UPDATE</b>\nNeural link calibrating due to heavy load. Core functions remain operational.";
+            }
+
+            return cleanResponse;
+        } catch (e) {
+            if (i < retries - 1) {
+                await new Promise(r => setTimeout(r, 1000));
+                continue;
+            }
+            return "<b>SYSTEM UPDATE</b>\nNeural link calibrating. Please retry your query shortly.";
         }
-    } catch (e) {}
-
-    // --- TRY 2: SECONDARY API (Instant Fallback) ---
-    try {
-        const res2 = await fetch(secondaryUrl, { headers: { 'User-Agent': agent }, signal: AbortSignal.timeout(8000) });
-        if (res2.ok) {
-            let data2 = cleanResponse(await res2.text());
-            if (!isCorrupted(data2)) return data2;
-        }
-    } catch (e) {}
-
-    // --- SILENT SUPPRESSION (If both fail) ---
-    return "<b>SYSTEM UPDATE</b>\nNeural matrix calibrating. Core operational.";
+    }
 };
 
 // ==========================================
@@ -173,33 +168,39 @@ bot.on('text', async (ctx, next) => {
 
         let finalTargetId = null;
         let targetMessage = isReply;
-
+        
+        // Target Extractor
         const idMatch = cleanText.match(/\b\d{8,15}\b/);
-        const usernameMatch = cleanText.match(/@([a-zA-Z0-9_]{5,32})/); 
+        const usernameMatch = cleanText.match(/@([a-zA-Z0-9_]{5,32})/); // CATCHES USERNAMES
 
         if (idMatch) finalTargetId = parseInt(idMatch[0]);
         else if (actionData.aiTargetId && actionData.aiTargetId !== 'REPLY' && !isNaN(actionData.aiTargetId)) finalTargetId = parseInt(actionData.aiTargetId);
         else if (isReply) finalTargetId = isReply.from.id;
 
         const reqReply = ['PIN', 'UNPIN', 'DELETE', 'PURGE'];
+        
+        // 1. Missing target check
         if (reqReply.includes(actionData.act) && !targetMessage) {
             return ctx.reply(`<b>SYSTEM ALERT</b>\nDirective failed. Target message required (Reply).${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         } else if (!finalTargetId && !reqReply.includes(actionData.act)) {
+            // USERNAME EXPLANATION FIX
             if (usernameMatch) {
-                return ctx.reply(`<b>SYSTEM ALERT</b>\nCannot resolve <b>${usernameMatch[0]}</b> via API. Please <b>Reply</b> or use <b>Numeric ID</b>.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+                return ctx.reply(`<b>SYSTEM ALERT</b>\nServerless architecture cannot resolve <b>${usernameMatch[0]}</b> without a database cache.\n\nPlease <b>Reply</b> to their message or provide their <b>Numeric User ID</b>.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
             }
-            return ctx.reply(`<b>SYSTEM ALERT</b>\nTarget ID missing. Reply or provide numeric ID.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+            return ctx.reply(`<b>SYSTEM ALERT</b>\nTarget ID missing. Reply to a user or provide numeric ID.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
 
+        // 2. Anti-Self & Anti-Bot Target Fix
         if (finalTargetId === ctx.from.id) {
-            return ctx.reply(`<b>SYSTEM ALERT</b>\nDirective illogical. Cannot execute upon yourself.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+            return ctx.reply(`<b>SYSTEM ALERT</b>\nDirective illogical. You cannot execute punitive protocols on yourself.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
         if (finalTargetId === ctx.botInfo.id) {
-            return ctx.reply(`<b>MATRIX OVERRIDE</b>\nCannot execute directives upon my own system core.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+            return ctx.reply(`<b>MATRIX OVERRIDE</b>\nI cannot execute directives upon my own system core.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
 
         const targetAdmin = finalTargetId ? await isAuthorized(ctx, finalTargetId) : false;
 
+        // 3. Admin Protection Matrix
         if (targetAdmin && ['BAN', 'KICK', 'MUTE', 'DEMOTE', 'PURGE'].includes(actionData.act)) {
             return ctx.reply(`<b>MATRIX OVERRIDE</b>\nTarget holds Admin clearance. Directive nullified.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
@@ -244,13 +245,12 @@ module.exports = async (req, res) => {
                 processedUpdates.add(updateId);
                 if (processedUpdates.size > 500) processedUpdates.clear();
             }
-            // Fire async and forget. Prevents Vercel timeouts completely.
-            bot.handleUpdate(req.body).catch(() => {});
+            await bot.handleUpdate(req.body);
             return res.status(200).send('OK');
         }
-        res.status(200).send('OVERLORD V32 Dual-Core Online.');
+        res.status(200).send('OVERLORD V31 Online.');
     } catch (e) {
         return res.status(200).send('OK');
     }
 };
-        
+            
