@@ -1,0 +1,13 @@
+{
+  "name": "overlord-prime-v7",
+  "version": "7.0.0",
+  "description": "Supreme AI Group Manager - Max Security",
+  "main": "api/bot.js",
+  "scripts": {
+    "start": "node api/bot.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.15.3"
+  }
+}
+
