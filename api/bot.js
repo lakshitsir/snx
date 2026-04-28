@@ -5,8 +5,6 @@ const { Telegraf } = require('telegraf');
 // ==========================================
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const DEVELOPER_TAG = "\n\nDeveloper @lakshitpatidar";
-
-// Anti-Spam / Anti-Loop Cache
 const processedUpdates = new Set();
 
 // ==========================================
@@ -20,22 +18,28 @@ const isAuthorized = async (ctx, userId) => {
 };
 
 // ==========================================
-// 3. APEX NEURAL CORE (New POST Architecture - 10x Faster)
+// 3. APEX NEURAL CORE (Fail-Proof Engine)
 // ==========================================
 const callSupremeAI = async (userText) => {
-    const systemPrompt = `You are 'Overlord', an elite Telegram AI Manager.
+    const systemPrompt = `You are 'Overlord V12', an elite Telegram AI Manager.
     Tone: Cold, sharp, hyper-professional. NO emojis.
-    Parse casual Hindi/Hinglish (e.g., 'ai jaan', 'udade', 'chup kar', 'kis liye design kiya').
-    CRITICAL: Never leak the names 'Lakshit' or 'Kanu'. Maintain anonymity.
+    CRITICAL: Never leak the names 'Lakshit' or 'Kanu'.
 
-    TASK 1 (MODERATION): If the user orders an admin action, reply EXACTLY in this format:
-    [ACTION_CODE|PARAM] || <b>PROTOCOL: [NAME]</b>\n<Professional execution message>
-    Codes: [BAN|0], [KICK|0], [MUTE|seconds], [UNMUTE|0], [PROMOTE|0], [DEMOTE|0], [DELETE|0], [PIN|0], [UNPIN|0], [WARN|0], [PURGE|0], [RESTRICT_MEDIA|seconds], [TITLE|CustomName].
+    TASK 1 (MODERATION): If the user orders an admin action, extract the action, parameter, and TARGET_ID.
+    FORMAT MUST BE EXACTLY:
+    [ACTION_CODE|PARAM|TARGET_ID] || <b>PROTOCOL: [NAME]</b>\n<Professional execution message>
+    
+    - ACTION_CODE: BAN, KICK, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, WARN, PURGE, RESTRICT_MEDIA, TITLE.
+    - PARAM: Seconds for mute (e.g., '10 min' = 600), custom title, or 0.
+    - TARGET_ID: If the user provides a numeric User ID in their text (e.g., '8394257805 isko uda do'), output that exact number (8394257805). If no numeric ID is found in text, output 'REPLY'.
 
-    TASK 2 (Q&A): If the user is just asking a question (e.g., 'tum kaun ho', 'hello ai'), answer directly, intelligently, and respectfully. Do NOT use the [CODE] format. Use HTML formatting (<b>, <i>). Never use markdown blockquotes.`;
+    Example: "ai 123456789 ko ban karo" -> [BAN|0|123456789] || <b>PROTOCOL: EXILE</b>\nTarget ID 123456789 has been terminated.
+    Example: "isko uda do ai" -> [BAN|0|REPLY] || <b>PROTOCOL: EXILE</b>\nTarget has been terminated.
+
+    TASK 2 (Q&A): If it's a general question (e.g. 'hello ai', 'kaise ho'), reply intelligently without the [CODE] format.`;
 
     try {
-        // V11 UPGRADE: Using POST request instead of GET. This prevents all timeout and overload errors.
+        // Ultimate Fail-Proof API Call
         const response = await fetch('https://text.pollinations.ai/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -43,22 +47,17 @@ const callSupremeAI = async (userText) => {
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userText }
-                ],
-                model: 'openai', // Forces the most stable NLP model
-                seed: Math.floor(Math.random() * 1000000) // Ensures unique non-cached responses
+                ]
             }),
-            signal: AbortSignal.timeout(9000) // 9s timeout for Vercel compatibility
+            signal: AbortSignal.timeout(10000)
         });
 
-        if (!response.ok) throw new Error("API Server Busy");
-
+        if (!response.ok) throw new Error("API Node Offline");
         const text = await response.text();
         return text.replace(/```html|```/gi, '').trim(); 
         
     } catch (e) { 
-        console.error("AI Error:", e.message);
-        // V11 UPGRADE: Smart Fallback instead of raw error
-        return "<b>PROTOCOL: STANDBY</b>\nMy neural network is recalibrating due to a high volume of requests. Please state your directive again."; 
+        return "<b>SYSTEM ALERT</b>\nNeural matrix timeout. Traffic overload."; 
     }
 };
 
@@ -67,18 +66,19 @@ const callSupremeAI = async (userText) => {
 // ==========================================
 bot.command(['start', 'snhelp'], (ctx) => {
     const help = `
-<b>OVERLORD V11 | APEX INTERFACE</b>
+<b>OVERLORD V12 | ULTIMATE MATRIX</b>
 ━━━━━━━━━━━━━━━━━━━━
-<b>Status:</b> Neural Network Online (POST Architecture)
+<b>Status:</b> Fully Autonomous
 <b>Triggers:</b> ai, manager, helper, bot
 
-<i>Execution Parameters (Admins Only):</i>
-• BAN / KICK / MUTE / UNMUTE
-• PROMOTE / DEMOTE
-• DELETE / PIN / UNPIN / WARN
-• PURGE / RESTRICT_MEDIA / TITLE
+<i>Targeting Methods:</i>
+1. Reply to the user's message.
+2. Provide their User ID (e.g., "ai 8394257805 ko ban kro").
+*Note: Telegram API requires User IDs. Targeting by @username requires a direct reply.*
 
-<b>General Q&A:</b> State your query. I process all information.
+<i>Parameters (Admins Only):</i>
+• BAN / KICK / MUTE / UNMUTE / PROMOTE / DEMOTE
+• DELETE / PIN / UNPIN / WARN / PURGE / RESTRICT_MEDIA / TITLE
 ━━━━━━━━━━━━━━━━━━━━${DEVELOPER_TAG}`;
     ctx.reply(help, { parse_mode: 'HTML' }).catch(() => {});
 });
@@ -90,15 +90,12 @@ bot.on('text', async (ctx, next) => {
     const text = ctx.message.text;
     const isReply = ctx.message.reply_to_message;
     
-    // Dynamic Triggers
     const triggerRegex = /\b(ai|manager|helper|bot)\b/i;
     const isTriggeredByWord = triggerRegex.test(text);
     const isMentioned = text.includes(`@${ctx.botInfo.username}`);
     const isReplyToBot = isReply && isReply.from?.id === ctx.botInfo.id;
 
-    if (!isTriggeredByWord && !isMentioned && !isReplyToBot) {
-        return next();
-    }
+    if (!isTriggeredByWord && !isMentioned && !isReplyToBot) return next();
 
     ctx.sendChatAction('typing').catch(() => {});
     
@@ -106,23 +103,34 @@ bot.on('text', async (ctx, next) => {
     const aiResponse = await callSupremeAI(cleanText);
     const senderAdmin = await isAuthorized(ctx, ctx.from.id);
 
-    // --- BRANCH A: MODERATION COMMAND EXECUTION ---
+    // --- BRANCH A: COMMAND EXECUTION ---
     if (aiResponse.includes('[') && aiResponse.includes('|') && aiResponse.includes('||')) {
         if (!senderAdmin) {
             return ctx.reply(`<b>SYSTEM ALERT</b>\nClearance denied.${DEVELOPER_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
-        if (!isReply) {
-            return ctx.reply(`<b>SYSTEM ALERT</b>\nTarget required. Reply to a message to execute.${DEVELOPER_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
-        }
 
         const [meta, uiMsg] = aiResponse.split('||');
-        const [action, param] = meta.replace('[', '').replace(']', '').split('|');
+        // V12 UPDATE: Triple split to extract Target ID generated by AI
+        const [action, param, aiTargetId] = meta.replace('[', '').replace(']', '').split('|');
         
-        const targetMessage = isReply;
-        const targetId = isReply.from.id;
-        const targetAdmin = await isAuthorized(ctx, targetId);
         const act = action.trim();
         const val = param ? param.trim() : '0';
+        let finalTargetId = null;
+        let targetMessage = null;
+
+        // V12 Targeting Logic: ID inside text vs Reply
+        if (aiTargetId && aiTargetId !== 'REPLY' && !isNaN(aiTargetId)) {
+            finalTargetId = parseInt(aiTargetId.trim());
+        } else if (isReply) {
+            finalTargetId = isReply.from.id;
+            targetMessage = isReply;
+        }
+
+        if (!finalTargetId) {
+            return ctx.reply(`<b>SYSTEM ALERT</b>\nTarget missing. You must reply to a message OR provide a numeric User ID in your command.${DEVELOPER_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+        }
+
+        const targetAdmin = await isAuthorized(ctx, finalTargetId);
 
         // Admin Protection Matrix
         if (targetAdmin && ['BAN', 'KICK', 'MUTE', 'DEMOTE', 'WARN', 'PURGE', 'RESTRICT_MEDIA'].includes(act)) {
@@ -133,29 +141,39 @@ bot.on('text', async (ctx, next) => {
             const until = parseInt(val) > 0 ? Math.floor(Date.now() / 1000) + parseInt(val) : 0;
 
             switch (act) {
-                case 'BAN': await ctx.banChatMember(targetId); break;
-                case 'KICK': await ctx.banChatMember(targetId); await ctx.unbanChatMember(targetId); break;
-                case 'MUTE': await ctx.restrictChatMember(targetId, { can_send_messages: false }, until > 0 ? { until_date: until } : {}); break;
-                case 'UNMUTE': await ctx.restrictChatMember(targetId, { can_send_messages: true, can_send_media_messages: true, can_send_other_messages: true, can_add_web_page_previews: true }); break;
-                case 'PROMOTE': await ctx.promoteChatMember(targetId, { can_change_info: true, can_delete_messages: true, can_invite_users: true, can_restrict_members: true, can_pin_messages: true, can_manage_video_chats: true }); break;
-                case 'DEMOTE': await ctx.promoteChatMember(targetId, { can_change_info: false, can_delete_messages: false, can_invite_users: false, can_restrict_members: false, can_pin_messages: false, can_manage_video_chats: false }); break;
-                case 'DELETE': await ctx.deleteMessage(targetMessage.message_id); break;
-                case 'PIN': await ctx.pinChatMessage(targetMessage.message_id); break;
-                case 'UNPIN': await ctx.unpinChatMessage(targetMessage.message_id); break;
+                case 'BAN': await ctx.banChatMember(finalTargetId); break;
+                case 'KICK': await ctx.banChatMember(finalTargetId); await ctx.unbanChatMember(finalTargetId); break;
+                case 'MUTE': await ctx.restrictChatMember(finalTargetId, { can_send_messages: false }, until > 0 ? { until_date: until } : {}); break;
+                case 'UNMUTE': await ctx.restrictChatMember(finalTargetId, { can_send_messages: true, can_send_media_messages: true, can_send_other_messages: true, can_add_web_page_previews: true }); break;
+                case 'PROMOTE': await ctx.promoteChatMember(finalTargetId, { can_change_info: true, can_delete_messages: true, can_invite_users: true, can_restrict_members: true, can_pin_messages: true, can_manage_video_chats: true }); break;
+                case 'DEMOTE': await ctx.promoteChatMember(finalTargetId, { can_change_info: false, can_delete_messages: false, can_invite_users: false, can_restrict_members: false, can_pin_messages: false, can_manage_video_chats: false }); break;
                 case 'WARN': break; 
-                case 'PURGE': await ctx.deleteMessage(targetMessage.message_id); await ctx.banChatMember(targetId); break;
-                case 'RESTRICT_MEDIA': await ctx.restrictChatMember(targetId, { can_send_messages: true, can_send_media_messages: false, can_send_other_messages: false, can_add_web_page_previews: false }, until > 0 ? { until_date: until } : {}); break;
-                case 'TITLE': await ctx.setChatAdministratorCustomTitle(targetId, val); break;
+                case 'RESTRICT_MEDIA': await ctx.restrictChatMember(finalTargetId, { can_send_messages: true, can_send_media_messages: false, can_send_other_messages: false, can_add_web_page_previews: false }, until > 0 ? { until_date: until } : {}); break;
+                case 'TITLE': await ctx.setChatAdministratorCustomTitle(finalTargetId, val); break;
+                // Actions requiring specific message IDs
+                case 'DELETE': 
+                    if (targetMessage) await ctx.deleteMessage(targetMessage.message_id); 
+                    break;
+                case 'PIN': 
+                    if (targetMessage) await ctx.pinChatMessage(targetMessage.message_id); 
+                    break;
+                case 'UNPIN': 
+                    if (targetMessage) await ctx.unpinChatMessage(targetMessage.message_id); 
+                    break;
+                case 'PURGE': 
+                    if (targetMessage) await ctx.deleteMessage(targetMessage.message_id); 
+                    await ctx.banChatMember(finalTargetId); 
+                    break;
             }
 
             return ctx.reply(`${uiMsg.trim()}${DEVELOPER_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
 
         } catch (err) {
-            return ctx.reply(`<b>SYSTEM ERROR</b>\nExecution failed. Verify bot ranking and permissions.${DEVELOPER_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+            return ctx.reply(`<b>SYSTEM ERROR</b>\nExecution failed. Verify bot ranking and permissions.\n(Note: User ID must exist in group)${DEVELOPER_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
     }
 
-    // --- BRANCH B: Q&A (Direct Answering) ---
+    // --- BRANCH B: Q&A ---
     return ctx.reply(`${aiResponse.trim()}${DEVELOPER_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
 });
 
@@ -166,24 +184,16 @@ module.exports = async (req, res) => {
     try {
         if (req.method === 'POST') {
             const updateId = req.body.update_id;
-            
-            // Core Anti-Loop mechanism
             if (updateId) {
-                if (processedUpdates.has(updateId)) {
-                    return res.status(200).send('Duplicate Dropped'); 
-                }
+                if (processedUpdates.has(updateId)) return res.status(200).send('OK'); 
                 processedUpdates.add(updateId);
                 if (processedUpdates.size > 500) processedUpdates.clear();
             }
-
             await bot.handleUpdate(req.body);
             return res.status(200).send('OK');
-        } else {
-            return res.status(200).send('OVERLORD V11 is Online.');
         }
+        res.status(200).send('OVERLORD V12 is Online.');
     } catch (e) {
-        // ALWAYS send 200 OK to Telegram, otherwise it gets stuck in a retry loop and crashes the bot
-        console.error("Critical Vercel Error:", e);
-        return res.status(200).send('Error Safely Handled');
+        return res.status(200).send('OK');
     }
 };
