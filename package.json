@@ -1,12 +1,15 @@
 {
-  "name": "overlord-apex-v14",
+  "name": "overlord-prime-v14",
   "version": "14.0.0",
-  "description": "Supreme Uncensored AI Group Manager",
+  "description": "Apex Level AI Group Manager",
   "main": "api/bot.js",
   "scripts": {
     "start": "node api/bot.js"
   },
   "dependencies": {
     "telegraf": "^4.15.3"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
