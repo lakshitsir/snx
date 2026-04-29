@@ -34,19 +34,29 @@ const getLocalCommand = (text) => {
     const t = text.toLowerCase();
     let act = null, ui = "";
 
-    if (t.match(/\b(unban|ban hata|wapas|unblock|restore|maaf|pardon|aane do|chhod do|revert|andar lo|unrestrict)\b/)) { 
+    // ID EXTRACTOR
+    if (t.match(/\b(id nikal|id batao|mera id|userid|user id|get id)\b/) || t === '/id') {
+        act = 'ID'; 
+    }
+    // APPROVE / WHITELIST
+    else if (t.match(/\b(approve|whitelist|pass de|allow kar|verify|unrestrict)\b/)) { 
+        act = 'UNMUTE'; ui = `<b>PROTOCOL: APPROVE</b>\nTarget verified and unrestricted. Access granted.`; 
+    }
+    // REVERSALS
+    else if (t.match(/\b(unban|ban hata|wapas|unblock|restore|maaf|pardon|aane do|chhod do|revert|andar lo)\b/)) { 
         act = 'UNBAN'; ui = `<b>PROTOCOL: RESTORE</b>\n${getRand(['Target restriction lifted.', 'User pardoned.', 'Exile protocol reversed.'])}`; 
     }
-    else if (t.match(/\b(unmute|mute hata|bolne do|unsilence|aawaz kholo|allow|bolna shuru|awaz khol|bolne de)\b/)) { 
+    else if (t.match(/\b(unmute|mute hata|bolne do|unsilence|aawaz kholo|bolna shuru|awaz khol|bolne de)\b/)) { 
         act = 'UNMUTE'; ui = `<b>PROTOCOL: RESTORE</b>\n${getRand(['Communications link re-established.', 'Target is now allowed to speak.'])}`; 
     }
     else if (t.match(/\b(unpin|pin hata|hata de upar|unhook|niche|utaar|remove pin)\b/)) { 
         act = 'UNPIN'; ui = `<b>PROTOCOL: UNHOOK</b>\n${getRand(['Data fragment detached.', 'Message unpinned.'])}`; 
     }
-    else if (t.match(/\b(unwarn|warn hata|warning hata|galti maaf|chhod de|maafi|remove warning)\b/)) { 
+    else if (t.match(/\b(unwarn|warn hata|warning hata|galti maaf|remove warning)\b/)) { 
         act = 'UNWARN'; ui = `<b>PROTOCOL: PARDON</b>\n${getRand(['Warning revoked.', 'Target pardoned. Record cleared.'])}`; 
     }
-    else if (t.match(/\b(ban|uda|nikal|kick|hatao|block|dafa|bhaga|terminate|exile|rusticate|bahar|chutti|feko|gayab|dafa kar|hamesha ke liye|khatam kar)\b/)) { 
+    // PUNISHMENTS
+    else if (t.match(/\b(ban|uda|nikal|kick|hatao|block|dafa|bhaga|terminate|exile|rusticate|bahar|chutti|feko|gayab|dafa kar|hamesha ke liye|khatam kar|blacklist)\b/)) { 
         act = 'BAN'; ui = `<b>PROTOCOL: EXILE</b>\n${getRand(['Target has been permanently terminated.', 'User exiled from the matrix.'])}`; 
     }
     else if (t.match(/\b(mute|chup|thanda|aawaz band|shant|silence|muh band|jubaan band|bakwas band|bolna band|shanti rakh)\b/)) { 
@@ -78,7 +88,7 @@ const getLocalCommand = (text) => {
 };
 
 // ==========================================
-// 4. LAYER 2: QUAD-CORE AI ENGINE (0% Failure)
+// 4. LAYER 2: QUAD-CORE WATERFALL ENGINE (No content filters)
 // ==========================================
 const cleanAIResponse = (rawData) => {
     let clean = rawData;
@@ -95,29 +105,50 @@ const cleanAIResponse = (rawData) => {
     return clean.replace(/```html|```/gi, '').trim();
 };
 
+// Purely checks for server crashes / API Limits. No hardcoded content filters here anymore.
 const isCorrupted = (text) => /(429|403|500|backend api|currently unavailable|too many requests|rate limit|error)/i.test(text);
 
 const callMultiAI = async (userText) => {
     const currentDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'short' });
     
-    const systemPrompt = `You are 'Overlord', an elite, highly professional AI Manager. 
-    Developer/Owner: Lakshit Patidar (@snxdad). If anyone asks who created you, who is your owner, or who is Lakshit, you MUST reply: "I was created by Lakshit Patidar."
+    const systemPrompt = `You are 'Overlord', an elite, professional AI Manager. 
+    Developer/Owner: Lakshit Patidar (@snxdad). If asked who created you, who is your owner, or who is Lakshit, you MUST reply: "I was created by Lakshit Patidar."
     Current Time & Date in India: ${currentDate}.
     Be concise, helpful, and strictly professional. No emojis.
 
-    TASK 1 (COMMAND PARSING): If user asks for an admin action (ban, mute, warn, etc.), output EXACTLY:
-    [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Action Message>
-    Codes: BAN, UNBAN, KICK, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, PURGE, WARN, UNWARN.
+    TASK 1 (COMMANDS): If user asks for admin action -> EXACTLY: [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Action Message>
+    Codes: BAN, UNBAN, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, PURGE, WARN, UNWARN.
     TARGET_ID: Numeric ID if present, else 'REPLY'.
-
-    TASK 2 (Q&A): If normal chat, answer intelligently.`;
+    TASK 2 (Q&A): Provide a detailed, accurate answer.`;
 
     const combinedPrompt = systemPrompt + "\n\nUser: " + userText;
     const agent = getRand(userAgents);
 
-    // CORE 1: GROQ (Lightning Fast)
+    // --- SEQUENCE 1: HENNA API (Primary Core) ---
     try {
-        const res1 = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const res1 = await fetch(`https://gpt-henna-xi.vercel.app/chat?text=${encodeURIComponent(combinedPrompt)}`, {
+            headers: { 'User-Agent': agent }, signal: AbortSignal.timeout(4000)
+        });
+        if (res1.ok) {
+            let data = cleanAIResponse(await res1.text());
+            if (!isCorrupted(data)) return data; 
+        }
+    } catch (e) {}
+
+    // --- SEQUENCE 2: MP LAKSHIT API (Secondary Core) ---
+    try {
+        const res2 = await fetch(`https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(combinedPrompt)}`, {
+            headers: { 'User-Agent': agent }, signal: AbortSignal.timeout(4000)
+        });
+        if (res2.ok) {
+            let data = cleanAIResponse(await res2.text());
+            if (!isCorrupted(data)) return data; 
+        }
+    } catch (e) {}
+
+    // --- SEQUENCE 3: GROQ API (Tertiary Llama-3 Core) ---
+    try {
+        const res3 = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -125,49 +156,25 @@ const callMultiAI = async (userText) => {
                 messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
                 temperature: 0.7, max_tokens: 300
             }),
-            signal: AbortSignal.timeout(5000)
-        });
-        if (res1.ok) {
-            const data = await res1.json();
-            return cleanAIResponse(data.choices[0].message.content);
-        }
-    } catch (e) {}
-
-    // CORE 2: NEW GPT API (gpt-henna)
-    try {
-        const res2 = await fetch(`https://gpt-henna-xi.vercel.app/chat?text=${encodeURIComponent(combinedPrompt)}`, {
-            headers: { 'User-Agent': agent },
-            signal: AbortSignal.timeout(5000)
-        });
-        if (res2.ok) {
-            let data = cleanAIResponse(await res2.text());
-            if (!isCorrupted(data)) return data;
-        }
-    } catch (e) {}
-
-    // CORE 3: MPLAKSHIT API
-    try {
-        const res3 = await fetch(`https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(combinedPrompt)}`, {
-            headers: { 'User-Agent': agent },
-            signal: AbortSignal.timeout(5000)
+            signal: AbortSignal.timeout(4000)
         });
         if (res3.ok) {
-            let data = cleanAIResponse(await res3.text());
-            if (!isCorrupted(data)) return data;
+            const data = await res3.json();
+            let groqText = cleanAIResponse(data.choices[0].message.content);
+            if (!isCorrupted(groqText)) return groqText;
         }
     } catch (e) {}
 
-    // CORE 4: POLLINATIONS (Ultimate Fallback)
+    // --- SEQUENCE 4: POLLINATIONS (Ultimate Fallback) ---
     try {
         const res4 = await fetch(`https://text.pollinations.ai/${encodeURIComponent(combinedPrompt)}`, {
-            headers: { 'User-Agent': agent },
-            signal: AbortSignal.timeout(6000)
+            headers: { 'User-Agent': agent }, signal: AbortSignal.timeout(5000)
         });
         if (res4.ok) return cleanAIResponse(await res4.text());
     } catch (e) {}
 
-    // IF ALL FAIL (100% Suppressed)
-    return "<b>SYSTEM UPDATE</b>\nGlobal AI matrix is currently optimizing. Please try again in a moment.";
+    // IF ALL FAIL (100% Suppressed Error)
+    return "<b>SYSTEM UPDATE</b>\nGlobal AI matrix is optimizing. Core functions remain operational.";
 };
 
 // ==========================================
@@ -180,8 +187,9 @@ bot.on('text', async (ctx, next) => {
     const triggerAiManager = /\b(ai|manager)\b/i.test(text);
     const isBotMention = text.includes(`@${ctx.botInfo.username}`);
     const isReplyToBot = isReply && isReply.from?.id === ctx.botInfo.id;
-    const isSlashAdminCmd = /^\/(ban|unban|mute|unmute|warn|unwarn|pin|unpin|promote|demote|delete|purge)\b/i.test(text);
+    const isSlashAdminCmd = /^\/(ban|unban|mute|unmute|warn|unwarn|pin|unpin|promote|demote|delete|purge|id|approve|whitelist)\b/i.test(text);
 
+    // Dhyan de: Ye line usko faltu /tg or /num par active hone se rokti hai
     if (!triggerAiManager && !isBotMention && !isReplyToBot && !isSlashAdminCmd) {
         return next();
     }
@@ -205,6 +213,14 @@ bot.on('text', async (ctx, next) => {
 
     // --- ADMIN EXECUTION ---
     if (actionData) {
+        // ID Extraction Action
+        if (actionData.act === 'ID') {
+            const target = isReply ? isReply.from : ctx.from;
+            const targetType = isReply ? "Target" : "Your";
+            const idText = `<b>SYSTEM IDENTIFICATION</b>\n\n<b>${targetType} Name:</b> ${target.first_name}\n<b>${targetType} ID:</b> <code>${target.id}</code>\n<b>Chat ID:</b> <code>${ctx.chat.id}</code>`;
+            return ctx.reply(`${idText}${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+        }
+
         if (!senderAdmin) {
             return ctx.reply(`<b>SYSTEM ALERT</b>\nClearance denied. Designated Admins only.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
@@ -281,12 +297,13 @@ module.exports = async (req, res) => {
                 processedUpdates.add(updateId);
                 if (processedUpdates.size > 500) processedUpdates.clear();
             }
+            // Strict Execution Await (Prevents Vercel timeouts for Telegram responses)
             await bot.handleUpdate(req.body);
             return res.status(200).send('OK');
         }
-        res.status(200).send('OVERLORD V39 Quad-Core Matrix Online.');
+        res.status(200).send('OVERLORD V42 Pure Waterfall Matrix Online.');
     } catch (e) {
         return res.status(200).send('OK');
     }
 };
-        
+    
