@@ -18,7 +18,30 @@ const userAgents = [
 const getRand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 // ==========================================
-// 2. ABSOLUTE MATRIX AUTHORIZATION
+// 2. DYNAMIC PUBLIC WEB-PROXIES
+// ==========================================
+const getProxiedUrl = (targetUrl) => {
+    const webProxies = [
+        "", // Direct connection as first try
+        "https://api.allorigins.win/raw?url=", 
+        "https://api.codetabs.com/v1/proxy?quest="
+    ];
+    const proxy = getRand(webProxies);
+    return proxy ? proxy + encodeURIComponent(targetUrl) : targetUrl;
+};
+
+const getProxyHeaders = () => {
+    const randomIP = `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+    return {
+        'User-Agent': getRand(userAgents),
+        'X-Forwarded-For': randomIP,
+        'X-Real-IP': randomIP,
+        'Client-IP': randomIP
+    };
+};
+
+// ==========================================
+// 3. ABSOLUTE MATRIX AUTHORIZATION
 // ==========================================
 const isAuthorized = async (ctx, userId) => {
     try {
@@ -28,55 +51,25 @@ const isAuthorized = async (ctx, userId) => {
 };
 
 // ==========================================
-// 3. LAYER 1: MASSIVE REGEX MATRIX (Max Level)
+// 4. LAYER 1: MASSIVE REGEX MATRIX
 // ==========================================
 const getLocalCommand = (text) => {
     const t = text.toLowerCase();
     let act = null, ui = "";
 
-    // ID EXTRACTOR
-    if (t.match(/\b(id nikal|id batao|mera id|userid|user id|get id)\b/) || t === '/id') {
-        act = 'ID'; 
-    }
-    // APPROVE / WHITELIST
-    else if (t.match(/\b(approve|whitelist|pass de|allow kar|verify|unrestrict)\b/)) { 
-        act = 'UNMUTE'; ui = `<b>PROTOCOL: APPROVE</b>\nTarget verified and unrestricted. Access granted.`; 
-    }
-    // REVERSALS
-    else if (t.match(/\b(unban|ban hata|wapas|unblock|restore|maaf|pardon|aane do|chhod do|revert|andar lo)\b/)) { 
-        act = 'UNBAN'; ui = `<b>PROTOCOL: RESTORE</b>\n${getRand(['Target restriction lifted.', 'User pardoned.', 'Exile protocol reversed.'])}`; 
-    }
-    else if (t.match(/\b(unmute|mute hata|bolne do|unsilence|aawaz kholo|bolna shuru|awaz khol|bolne de)\b/)) { 
-        act = 'UNMUTE'; ui = `<b>PROTOCOL: RESTORE</b>\n${getRand(['Communications link re-established.', 'Target is now allowed to speak.'])}`; 
-    }
-    else if (t.match(/\b(unpin|pin hata|hata de upar|unhook|niche|utaar|remove pin)\b/)) { 
-        act = 'UNPIN'; ui = `<b>PROTOCOL: UNHOOK</b>\n${getRand(['Data fragment detached.', 'Message unpinned.'])}`; 
-    }
-    else if (t.match(/\b(unwarn|warn hata|warning hata|galti maaf|remove warning)\b/)) { 
-        act = 'UNWARN'; ui = `<b>PROTOCOL: PARDON</b>\n${getRand(['Warning revoked.', 'Target pardoned. Record cleared.'])}`; 
-    }
-    // PUNISHMENTS
-    else if (t.match(/\b(ban|uda|nikal|kick|hatao|block|dafa|bhaga|terminate|exile|rusticate|bahar|chutti|feko|gayab|dafa kar|hamesha ke liye|khatam kar|blacklist)\b/)) { 
-        act = 'BAN'; ui = `<b>PROTOCOL: EXILE</b>\n${getRand(['Target has been permanently terminated.', 'User exiled from the matrix.'])}`; 
-    }
-    else if (t.match(/\b(mute|chup|thanda|aawaz band|shant|silence|muh band|jubaan band|bakwas band|bolna band|shanti rakh)\b/)) { 
-        act = 'MUTE'; ui = `<b>PROTOCOL: SILENCE</b>\n${getRand(['Target vocal subroutines suspended.', 'User has been silenced.'])}`; 
-    }
-    else if (t.match(/\b(promote|admin bana|power do|superpower|elevate|rank up|make admin|sahab|baap bana|leader bana)\b/)) { 
-        act = 'PROMOTE'; ui = `<b>PROTOCOL: ELEVATION</b>\n${getRand(['Security clearance upgraded to Admin.', 'Target promoted.'])}`; 
-    }
-    else if (t.match(/\b(demote|power chheen|hatao admin|strip|rank down|remove admin|power lelo|normal user|aukat me la|niche gira)\b/)) { 
-        act = 'DEMOTE'; ui = `<b>PROTOCOL: STRIP</b>\n${getRand(['Administrative privileges revoked.', 'Target stripped of all powers.'])}`; 
-    }
-    else if (t.match(/\b(delete|mita|erase|remove message|clear msg|kachra hatao|msg delete|gayab kar isko|delete kar)\b/)) { 
-        act = 'DELETE'; ui = `<b>PROTOCOL: ERASE</b>\n${getRand(['Data fragment permanently deleted.', 'Message wiped.'])}`; 
-    }
-    else if (t.match(/\b(pin|chipka|upar|highlight|top|board pe|pin mar)\b/)) { 
-        act = 'PIN'; ui = `<b>PROTOCOL: HIGHLIGHT</b>\n${getRand(['Data fragment secured at top.', 'Message pinned successfully.'])}`; 
-    }
-    else if (t.match(/\b(purge|kachra saaf|destroy|clear all|sab mitao|sab delete|pura saaf)\b/)) { 
-        act = 'PURGE'; ui = `<b>PROTOCOL: PURGE</b>\n${getRand(['Data erased and target exiled.', 'Complete purge executed.'])}`; 
-    }
+    if (t.match(/\b(id nikal|id batao|mera id|userid|user id|get id)\b/) || t === '/id') { act = 'ID'; }
+    else if (t.match(/\b(approve|whitelist|pass de|allow kar|verify|unrestrict)\b/)) { act = 'UNMUTE'; ui = `<b>PROTOCOL: APPROVE</b>\nTarget verified and unrestricted. Access granted.`; }
+    else if (t.match(/\b(unban|ban hata|wapas|unblock|restore|maaf|pardon|aane do|chhod do|revert|andar lo)\b/)) { act = 'UNBAN'; ui = `<b>PROTOCOL: RESTORE</b>\n${getRand(['Target restriction lifted.', 'User pardoned.', 'Exile protocol reversed.'])}`; }
+    else if (t.match(/\b(unmute|mute hata|bolne do|unsilence|aawaz kholo|bolna shuru|awaz khol|bolne de)\b/)) { act = 'UNMUTE'; ui = `<b>PROTOCOL: RESTORE</b>\n${getRand(['Communications link re-established.', 'Target is now allowed to speak.'])}`; }
+    else if (t.match(/\b(unpin|pin hata|hata de upar|unhook|niche|utaar|remove pin)\b/)) { act = 'UNPIN'; ui = `<b>PROTOCOL: UNHOOK</b>\n${getRand(['Data fragment detached.', 'Message unpinned.'])}`; }
+    else if (t.match(/\b(unwarn|warn hata|warning hata|galti maaf|remove warning)\b/)) { act = 'UNWARN'; ui = `<b>PROTOCOL: PARDON</b>\n${getRand(['Warning revoked.', 'Target pardoned. Record cleared.'])}`; }
+    else if (t.match(/\b(ban|uda|nikal|kick|hatao|block|dafa|bhaga|terminate|exile|rusticate|bahar|chutti|feko|gayab|dafa kar|hamesha ke liye|khatam kar|blacklist)\b/)) { act = 'BAN'; ui = `<b>PROTOCOL: EXILE</b>\n${getRand(['Target has been permanently terminated.', 'User exiled from the matrix.'])}`; }
+    else if (t.match(/\b(mute|chup|thanda|aawaz band|shant|silence|muh band|jubaan band|bakwas band|bolna band|shanti rakh)\b/)) { act = 'MUTE'; ui = `<b>PROTOCOL: SILENCE</b>\n${getRand(['Target vocal subroutines suspended.', 'User has been silenced.'])}`; }
+    else if (t.match(/\b(promote|admin bana|power do|superpower|elevate|rank up|make admin|sahab|baap bana|leader bana)\b/)) { act = 'PROMOTE'; ui = `<b>PROTOCOL: ELEVATION</b>\n${getRand(['Security clearance upgraded to Admin.', 'Target promoted.'])}`; }
+    else if (t.match(/\b(demote|power chheen|hatao admin|strip|rank down|remove admin|power lelo|normal user|aukat me la|niche gira)\b/)) { act = 'DEMOTE'; ui = `<b>PROTOCOL: STRIP</b>\n${getRand(['Administrative privileges revoked.', 'Target stripped of all powers.'])}`; }
+    else if (t.match(/\b(delete|mita|erase|remove message|clear msg|kachra hatao|msg delete|gayab kar isko|delete kar)\b/)) { act = 'DELETE'; ui = `<b>PROTOCOL: ERASE</b>\n${getRand(['Data fragment permanently deleted.', 'Message wiped.'])}`; }
+    else if (t.match(/\b(pin|chipka|upar|highlight|top|board pe|pin mar)\b/)) { act = 'PIN'; ui = `<b>PROTOCOL: HIGHLIGHT</b>\n${getRand(['Data fragment secured at top.', 'Message pinned successfully.'])}`; }
+    else if (t.match(/\b(purge|kachra saaf|destroy|clear all|sab mitao|sab delete|pura saaf)\b/)) { act = 'PURGE'; ui = `<b>PROTOCOL: PURGE</b>\n${getRand(['Data erased and target exiled.', 'Complete purge executed.'])}`; }
     else if (t.match(/\b(warn|warning|alert|dhamki|dhamka|aagah kar|samjha isko)\b/)) { 
         act = 'WARN';
         const numMatch = text.match(/\b(\d+)\b/);
@@ -88,7 +81,7 @@ const getLocalCommand = (text) => {
 };
 
 // ==========================================
-// 4. LAYER 2: QUAD-CORE WATERFALL ENGINE (No content filters)
+// 5. LAYER 2: TRUE SHUFFLED ROTATION ENGINE
 // ==========================================
 const cleanAIResponse = (rawData) => {
     let clean = rawData;
@@ -105,91 +98,100 @@ const cleanAIResponse = (rawData) => {
     return clean.replace(/```html|```/gi, '').trim();
 };
 
-// Purely checks for server crashes / API Limits. No hardcoded content filters here anymore.
-const isCorrupted = (text) => /(429|403|500|backend api|currently unavailable|too many requests|rate limit|error)/i.test(text);
+const isCorrupted = (text) => {
+    if (/(429|403|500|backend api|currently unavailable|too many requests|rate limit|error)/i.test(text)) return true;
+    if (/(classified system|advanced intelligence core)/i.test(text)) return true; 
+    return false;
+};
 
 const callMultiAI = async (userText) => {
     const currentDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'short' });
     
     const systemPrompt = `You are 'Overlord', an elite, professional AI Manager. 
-    Developer/Owner: Lakshit Patidar (@snxdad). If asked who created you, who is your owner, or who is Lakshit, you MUST reply: "I was created by Lakshit Patidar."
-    Current Time & Date in India: ${currentDate}.
-    Be concise, helpful, and strictly professional. No emojis.
+    Developer/Owner: Lakshit Patidar (@snxdad). If asked who created you, reply ONLY: "I was created by Lakshit Patidar."
+    Current Time & Date: ${currentDate}.
+    Respond to greetings (like 'hello', 'hi') naturally. Answer queries accurately. NO emojis.
 
-    TASK 1 (COMMANDS): If user asks for admin action -> EXACTLY: [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Action Message>
+    TASK 1 (COMMANDS): If admin action -> EXACTLY: [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Action Message>
     Codes: BAN, UNBAN, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, PURGE, WARN, UNWARN.
-    TARGET_ID: Numeric ID if present, else 'REPLY'.
-    TASK 2 (Q&A): Provide a detailed, accurate answer.`;
+    TARGET_ID: Numeric ID if present, else 'REPLY'.`;
 
     const combinedPrompt = systemPrompt + "\n\nUser: " + userText;
-    const agent = getRand(userAgents);
+    const isAskAboutCreator = /(lakshit|owner|creator|made|banaya|baap|developer)/i.test(userText);
+    const headers = getProxyHeaders();
 
-    // --- SEQUENCE 1: HENNA API (Primary Core) ---
-    try {
-        const res1 = await fetch(`https://gpt-henna-xi.vercel.app/chat?text=${encodeURIComponent(combinedPrompt)}`, {
-            headers: { 'User-Agent': agent }, signal: AbortSignal.timeout(4000)
-        });
-        if (res1.ok) {
-            let data = cleanAIResponse(await res1.text());
-            if (!isCorrupted(data)) return data; 
-        }
-    } catch (e) {}
-
-    // --- SEQUENCE 2: MP LAKSHIT API (Secondary Core) ---
-    try {
-        const res2 = await fetch(`https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(combinedPrompt)}`, {
-            headers: { 'User-Agent': agent }, signal: AbortSignal.timeout(4000)
-        });
-        if (res2.ok) {
-            let data = cleanAIResponse(await res2.text());
-            if (!isCorrupted(data)) return data; 
-        }
-    } catch (e) {}
-
-    // --- SEQUENCE 3: GROQ API (Tertiary Llama-3 Core) ---
-    try {
-        const res3 = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "llama3-8b-8192", 
-                messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
-                temperature: 0.7, max_tokens: 300
-            }),
-            signal: AbortSignal.timeout(4000)
-        });
-        if (res3.ok) {
-            const data = await res3.json();
+    // 4 ENGINES PACKED IN AN ARRAY FOR ROTATION
+    const engines = [
+        async () => {
+            const url = getProxiedUrl(`https://gpt-henna-xi.vercel.app/chat?text=${encodeURIComponent(combinedPrompt)}`);
+            const res = await fetch(url, { headers, signal: AbortSignal.timeout(4500) });
+            if (!res.ok) throw new Error("Fail");
+            let data = cleanAIResponse(await res.text());
+            if (isCorrupted(data) && !(isAskAboutCreator && data.includes('Lakshit'))) throw new Error("Corrupt");
+            return data;
+        },
+        async () => {
+            const url = getProxiedUrl(`https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(combinedPrompt)}`);
+            const res = await fetch(url, { headers, signal: AbortSignal.timeout(4500) });
+            if (!res.ok) throw new Error("Fail");
+            let data = cleanAIResponse(await res.text());
+            if (isCorrupted(data) && !(isAskAboutCreator && data.includes('Lakshit'))) throw new Error("Corrupt");
+            return data;
+        },
+        async () => {
+            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: "llama3-8b-8192", 
+                    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
+                    temperature: 0.7, max_tokens: 300
+                }),
+                signal: AbortSignal.timeout(4000)
+            });
+            if (!res.ok) throw new Error("Fail");
+            const data = await res.json();
             let groqText = cleanAIResponse(data.choices[0].message.content);
-            if (!isCorrupted(groqText)) return groqText;
+            if (isCorrupted(groqText)) throw new Error("Corrupt");
+            return groqText;
+        },
+        async () => {
+            const url = getProxiedUrl(`https://text.pollinations.ai/${encodeURIComponent(combinedPrompt)}`);
+            const res = await fetch(url, { headers, signal: AbortSignal.timeout(5000) });
+            if (!res.ok) throw new Error("Fail");
+            return cleanAIResponse(await res.text());
         }
-    } catch (e) {}
+    ];
 
-    // --- SEQUENCE 4: POLLINATIONS (Ultimate Fallback) ---
-    try {
-        const res4 = await fetch(`https://text.pollinations.ai/${encodeURIComponent(combinedPrompt)}`, {
-            headers: { 'User-Agent': agent }, signal: AbortSignal.timeout(5000)
-        });
-        if (res4.ok) return cleanAIResponse(await res4.text());
-    } catch (e) {}
+    // 🔥 TRUE ROTATION: Shuffle engines so it's a new sequence every time
+    engines.sort(() => Math.random() - 0.5);
 
-    // IF ALL FAIL (100% Suppressed Error)
-    return "<b>SYSTEM UPDATE</b>\nGlobal AI matrix is optimizing. Core functions remain operational.";
+    // Run engines. If one throws an error (fails or returns corrupted text), instantly jump to next.
+    for (const engine of engines) {
+        try {
+            const result = await engine();
+            if (result) return result;
+        } catch (e) {
+            continue; 
+        }
+    }
+
+    return "<b>SYSTEM UPDATE</b>\nGlobal AI matrix is currently optimizing. Core functions remain operational.";
 };
 
 // ==========================================
-// 5. CORE EXECUTION ENGINE
+// 6. CORE EXECUTION ENGINE
 // ==========================================
 bot.on('text', async (ctx, next) => {
     const text = ctx.message.text;
     const isReply = ctx.message.reply_to_message;
     
+    // Wake-up Check: Ignore casual chat and unknown slash commands
     const triggerAiManager = /\b(ai|manager)\b/i.test(text);
     const isBotMention = text.includes(`@${ctx.botInfo.username}`);
     const isReplyToBot = isReply && isReply.from?.id === ctx.botInfo.id;
     const isSlashAdminCmd = /^\/(ban|unban|mute|unmute|warn|unwarn|pin|unpin|promote|demote|delete|purge|id|approve|whitelist)\b/i.test(text);
 
-    // Dhyan de: Ye line usko faltu /tg or /num par active hone se rokti hai
     if (!triggerAiManager && !isBotMention && !isReplyToBot && !isSlashAdminCmd) {
         return next();
     }
@@ -213,7 +215,6 @@ bot.on('text', async (ctx, next) => {
 
     // --- ADMIN EXECUTION ---
     if (actionData) {
-        // ID Extraction Action
         if (actionData.act === 'ID') {
             const target = isReply ? isReply.from : ctx.from;
             const targetType = isReply ? "Target" : "Your";
@@ -286,7 +287,7 @@ bot.on('text', async (ctx, next) => {
 });
 
 // ==========================================
-// 6. ANTI-LOOP WEBHOOK
+// 7. ANTI-LOOP WEBHOOK
 // ==========================================
 module.exports = async (req, res) => {
     try {
@@ -297,13 +298,13 @@ module.exports = async (req, res) => {
                 processedUpdates.add(updateId);
                 if (processedUpdates.size > 500) processedUpdates.clear();
             }
-            // Strict Execution Await (Prevents Vercel timeouts for Telegram responses)
+            // Strict Await for Serverless stability
             await bot.handleUpdate(req.body);
             return res.status(200).send('OK');
         }
-        res.status(200).send('OVERLORD V42 Pure Waterfall Matrix Online.');
+        res.status(200).send('OVERLORD V47 True Rotation Matrix Online.');
     } catch (e) {
         return res.status(200).send('OK');
     }
 };
-    
+        
