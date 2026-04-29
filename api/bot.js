@@ -22,7 +22,7 @@ const getRand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 // ==========================================
 const getProxiedUrl = (targetUrl) => {
     const webProxies = [
-        "", // Direct connection as first try
+        "", // Direct connection (fastest)
         "https://api.allorigins.win/raw?url=", 
         "https://api.codetabs.com/v1/proxy?quest="
     ];
@@ -81,7 +81,7 @@ const getLocalCommand = (text) => {
 };
 
 // ==========================================
-// 5. LAYER 2: TRUE SHUFFLED ROTATION ENGINE
+// 5. LAYER 2: PENTA-CORE WATERFALL ENGINE
 // ==========================================
 const cleanAIResponse = (rawData) => {
     let clean = rawData;
@@ -99,8 +99,9 @@ const cleanAIResponse = (rawData) => {
 };
 
 const isCorrupted = (text) => {
-    if (/(429|403|500|backend api|currently unavailable|too many requests|rate limit|error)/i.test(text)) return true;
+    if (/(429|403|500|backend api|currently unavailable|too many requests|rate limit|error|bad gateway)/i.test(text)) return true;
     if (/(classified system|advanced intelligence core)/i.test(text)) return true; 
+    if (/(IMPORTANT NOTICE|deprecated|enter\.pollinations\.ai|migrate to our new service)/i.test(text)) return true;
     return false;
 };
 
@@ -110,7 +111,7 @@ const callMultiAI = async (userText) => {
     const systemPrompt = `You are 'Overlord', an elite, professional AI Manager. 
     Developer/Owner: Lakshit Patidar (@snxdad). If asked who created you, reply ONLY: "I was created by Lakshit Patidar."
     Current Time & Date: ${currentDate}.
-    Respond to greetings (like 'hello', 'hi') naturally. Answer queries accurately. NO emojis.
+    Respond to greetings naturally. Answer queries accurately. NO emojis.
 
     TASK 1 (COMMANDS): If admin action -> EXACTLY: [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Action Message>
     Codes: BAN, UNBAN, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, PURGE, WARN, UNWARN.
@@ -120,63 +121,67 @@ const callMultiAI = async (userText) => {
     const isAskAboutCreator = /(lakshit|owner|creator|made|banaya|baap|developer)/i.test(userText);
     const headers = getProxyHeaders();
 
-    // 4 ENGINES PACKED IN AN ARRAY FOR ROTATION
-    const engines = [
-        async () => {
-            const url = getProxiedUrl(`https://gpt-henna-xi.vercel.app/chat?text=${encodeURIComponent(combinedPrompt)}`);
-            const res = await fetch(url, { headers, signal: AbortSignal.timeout(4500) });
-            if (!res.ok) throw new Error("Fail");
-            let data = cleanAIResponse(await res.text());
-            if (isCorrupted(data) && !(isAskAboutCreator && data.includes('Lakshit'))) throw new Error("Corrupt");
-            return data;
-        },
-        async () => {
-            const url = getProxiedUrl(`https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(combinedPrompt)}`);
-            const res = await fetch(url, { headers, signal: AbortSignal.timeout(4500) });
-            if (!res.ok) throw new Error("Fail");
-            let data = cleanAIResponse(await res.text());
-            if (isCorrupted(data) && !(isAskAboutCreator && data.includes('Lakshit'))) throw new Error("Corrupt");
-            return data;
-        },
-        async () => {
-            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    model: "llama3-8b-8192", 
-                    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
-                    temperature: 0.7, max_tokens: 300
-                }),
-                signal: AbortSignal.timeout(4000)
-            });
-            if (!res.ok) throw new Error("Fail");
-            const data = await res.json();
+    // --- CORE 1: HENNA API ---
+    try {
+        const url1 = getProxiedUrl(`https://gpt-henna-xi.vercel.app/chat?text=${encodeURIComponent(combinedPrompt)}`);
+        const res1 = await fetch(url1, { headers, signal: AbortSignal.timeout(4000) });
+        if (res1.ok) {
+            let data = cleanAIResponse(await res1.text());
+            if (!isCorrupted(data) || (isAskAboutCreator && data.includes('Lakshit'))) return data; 
+        }
+    } catch (e) {}
+
+    // --- CORE 2: NEW ANTR API ---
+    try {
+        const url2 = getProxiedUrl(`https://antr.vercel.app/api/chat?mensaje=${encodeURIComponent(combinedPrompt)}`);
+        const res2 = await fetch(url2, { headers, signal: AbortSignal.timeout(4000) });
+        if (res2.ok) {
+            let data = cleanAIResponse(await res2.text());
+            if (!isCorrupted(data) || (isAskAboutCreator && data.includes('Lakshit'))) return data; 
+        }
+    } catch (e) {}
+
+    // --- CORE 3: MP LAKSHIT API ---
+    try {
+        const url3 = getProxiedUrl(`https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(combinedPrompt)}`);
+        const res3 = await fetch(url3, { headers, signal: AbortSignal.timeout(4000) });
+        if (res3.ok) {
+            let data = cleanAIResponse(await res3.text());
+            if (!isCorrupted(data) || (isAskAboutCreator && data.includes('Lakshit'))) return data; 
+        }
+    } catch (e) {}
+
+    // --- CORE 4: GROQ API (Llama-3) ---
+    try {
+        const res4 = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "llama3-8b-8192", 
+                messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
+                temperature: 0.7, max_tokens: 300
+            }),
+            signal: AbortSignal.timeout(4000)
+        });
+        if (res4.ok) {
+            const data = await res4.json();
             let groqText = cleanAIResponse(data.choices[0].message.content);
-            if (isCorrupted(groqText)) throw new Error("Corrupt");
-            return groqText;
-        },
-        async () => {
-            const url = getProxiedUrl(`https://text.pollinations.ai/${encodeURIComponent(combinedPrompt)}`);
-            const res = await fetch(url, { headers, signal: AbortSignal.timeout(5000) });
-            if (!res.ok) throw new Error("Fail");
-            return cleanAIResponse(await res.text());
+            if (!isCorrupted(groqText)) return groqText;
         }
-    ];
+    } catch (e) {}
 
-    // 🔥 TRUE ROTATION: Shuffle engines so it's a new sequence every time
-    engines.sort(() => Math.random() - 0.5);
-
-    // Run engines. If one throws an error (fails or returns corrupted text), instantly jump to next.
-    for (const engine of engines) {
-        try {
-            const result = await engine();
-            if (result) return result;
-        } catch (e) {
-            continue; 
+    // --- CORE 5: POLLINATIONS (Ultimate Fallback) ---
+    try {
+        const url5 = getProxiedUrl(`https://text.pollinations.ai/${encodeURIComponent(combinedPrompt)}`);
+        const res5 = await fetch(url5, { headers, signal: AbortSignal.timeout(5000) });
+        if (res5.ok) {
+            let data = cleanAIResponse(await res5.text());
+            if (!isCorrupted(data)) return data;
         }
-    }
+    } catch (e) {}
 
-    return "<b>SYSTEM UPDATE</b>\nGlobal AI matrix is currently optimizing. Core functions remain operational.";
+    // IF ALL 5 CORES FAIL
+    return "<b>SYSTEM UPDATE</b>\nGlobal AI matrix is optimizing. Core functions remain operational.";
 };
 
 // ==========================================
@@ -186,7 +191,6 @@ bot.on('text', async (ctx, next) => {
     const text = ctx.message.text;
     const isReply = ctx.message.reply_to_message;
     
-    // Wake-up Check: Ignore casual chat and unknown slash commands
     const triggerAiManager = /\b(ai|manager)\b/i.test(text);
     const isBotMention = text.includes(`@${ctx.botInfo.username}`);
     const isReplyToBot = isReply && isReply.from?.id === ctx.botInfo.id;
@@ -298,13 +302,12 @@ module.exports = async (req, res) => {
                 processedUpdates.add(updateId);
                 if (processedUpdates.size > 500) processedUpdates.clear();
             }
-            // Strict Await for Serverless stability
             await bot.handleUpdate(req.body);
             return res.status(200).send('OK');
         }
-        res.status(200).send('OVERLORD V47 True Rotation Matrix Online.');
+        res.status(200).send('OVERLORD V49 Penta-Core Matrix Online.');
     } catch (e) {
         return res.status(200).send('OK');
     }
 };
-        
+    
