@@ -76,7 +76,7 @@ const getLocalCommand = (text) => {
 // ==========================================
 const callGroqAI = async (userText) => {
     const systemPrompt = `You are 'Overlord', an elite, cold, professional AI Manager.
-    Your Creator/Developer is 'Lakshit Patidar'. If asked who made you, always say Lakshit Patidar.
+    Your Developer is Lakshit Patidar (@snxdad). If asked who made you, always say Lakshit Patidar.
     NO emojis. Be concise and fast.
 
     TASK 1 (COMMAND PARSING): If user asks for an admin action (ban, mute, warn, etc.), output EXACTLY:
@@ -105,7 +105,7 @@ const callGroqAI = async (userText) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(5000) 
+            signal: AbortSignal.timeout(6000) 
         });
 
         if (!response.ok) throw new Error("API Failure");
@@ -129,17 +129,17 @@ bot.on('text', async (ctx, next) => {
     const isReply = ctx.message.reply_to_message;
     
     // --- SMART WAKE-UP LOGIC ---
-    const trigger = /\b(ai|manager)\b/i;
-    
-    // Sirf allowed admin commands ko check karega. Baki sabko ignore karega.
-    const isValidCommand = /^\/(ban|unban|mute|unmute|warn|unwarn|pin|unpin|promote|demote|delete|purge)\b/i.test(text);
-    
-    // Agar "ai/manager" nahi hai, Reply/Mention nahi hai, aur VALID admin command nahi hai -> INSTANT DROP.
-    if (!trigger.test(text) && !text.includes(`@${ctx.botInfo.username}`) && !(isReply && isReply.from?.id === ctx.botInfo.id) && !isValidCommand) {
+    const triggerAiManager = /\b(ai|manager)\b/i.test(text);
+    const isBotMention = text.includes(`@${ctx.botInfo.username}`);
+    const isReplyToBot = isReply && isReply.from?.id === ctx.botInfo.id;
+    // Sirf core admin slash commands. Faltu (/tg, /num) yahan se drop ho jayenge.
+    const isSlashAdminCmd = /^\/(ban|unban|mute|unmute|warn|unwarn|pin|unpin|promote|demote|delete|purge)\b/i.test(text);
+
+    if (!triggerAiManager && !isBotMention && !isReplyToBot && !isSlashAdminCmd) {
         return next();
     }
 
-    // Command filter pass hone ke baad text ko clean karta hai
+    // Slash command se slash hatake clean text banata hai jisse Local matrix me scan ho sake
     let cleanText = text.replace(`@${ctx.botInfo.username}`, '').replace(/^\//, '').trim();
     const senderAdmin = await isAuthorized(ctx, ctx.from.id);
 
@@ -235,10 +235,13 @@ module.exports = async (req, res) => {
                 processedUpdates.add(updateId);
                 if (processedUpdates.size > 500) processedUpdates.clear();
             }
-            bot.handleUpdate(req.body).catch(() => {});
+            
+            // 🔥 THE FATAL FIX: Using 'await' guarantees Vercel won't kill the function until reply is sent.
+            await bot.handleUpdate(req.body);
+            
             return res.status(200).send('OK');
         }
-        res.status(200).send('OVERLORD V36 Smart Wake-Up Matrix Online.');
+        res.status(200).send('OVERLORD V37 Matrix Online.');
     } catch (e) {
         return res.status(200).send('OK');
     }
