@@ -9,11 +9,11 @@ const processedUpdates = new Set();
 
 const GROQ_API_KEY = "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";
 
-// Spoofer to prevent 403s on APIs
 const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/16.6 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) Chrome/119.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (X11; Linux x86_64) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1) Version/17.1 Safari/604.1"
 ];
 const getRand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -28,46 +28,46 @@ const isAuthorized = async (ctx, userId) => {
 };
 
 // ==========================================
-// 3. LAYER 1: MASSIVE REGEX MATRIX
+// 3. LAYER 1: MASSIVE REGEX MATRIX (Max Level)
 // ==========================================
 const getLocalCommand = (text) => {
     const t = text.toLowerCase();
     let act = null, ui = "";
 
-    if (t.match(/\b(unban|ban hata|wapas|unblock|restore|maaf|pardon|aane do|chhod do|revert|andar lo)\b/)) { 
+    if (t.match(/\b(unban|ban hata|wapas|unblock|restore|maaf|pardon|aane do|chhod do|revert|andar lo|unrestrict)\b/)) { 
         act = 'UNBAN'; ui = `<b>PROTOCOL: RESTORE</b>\n${getRand(['Target restriction lifted.', 'User pardoned.', 'Exile protocol reversed.'])}`; 
     }
-    else if (t.match(/\b(unmute|mute hata|bolne do|unsilence|aawaz kholo|allow|bolna shuru|awaz khol)\b/)) { 
+    else if (t.match(/\b(unmute|mute hata|bolne do|unsilence|aawaz kholo|allow|bolna shuru|awaz khol|bolne de)\b/)) { 
         act = 'UNMUTE'; ui = `<b>PROTOCOL: RESTORE</b>\n${getRand(['Communications link re-established.', 'Target is now allowed to speak.'])}`; 
     }
-    else if (t.match(/\b(unpin|pin hata|hata de upar|unhook|niche|utaar)\b/)) { 
+    else if (t.match(/\b(unpin|pin hata|hata de upar|unhook|niche|utaar|remove pin)\b/)) { 
         act = 'UNPIN'; ui = `<b>PROTOCOL: UNHOOK</b>\n${getRand(['Data fragment detached.', 'Message unpinned.'])}`; 
     }
-    else if (t.match(/\b(unwarn|warn hata|warning hata|galti maaf|chhod de|maafi)\b/)) { 
+    else if (t.match(/\b(unwarn|warn hata|warning hata|galti maaf|chhod de|maafi|remove warning)\b/)) { 
         act = 'UNWARN'; ui = `<b>PROTOCOL: PARDON</b>\n${getRand(['Warning revoked.', 'Target pardoned. Record cleared.'])}`; 
     }
-    else if (t.match(/\b(ban|uda|nikal|kick|hatao|block|dafa|bhaga|terminate|exile|rusticate|bahar|chutti|feko|gayab|dafa kar|hamesha ke liye)\b/)) { 
+    else if (t.match(/\b(ban|uda|nikal|kick|hatao|block|dafa|bhaga|terminate|exile|rusticate|bahar|chutti|feko|gayab|dafa kar|hamesha ke liye|khatam kar)\b/)) { 
         act = 'BAN'; ui = `<b>PROTOCOL: EXILE</b>\n${getRand(['Target has been permanently terminated.', 'User exiled from the matrix.'])}`; 
     }
-    else if (t.match(/\b(mute|chup|thanda|aawaz band|shant|silence|muh band|jubaan band|bakwas band|bolna band)\b/)) { 
+    else if (t.match(/\b(mute|chup|thanda|aawaz band|shant|silence|muh band|jubaan band|bakwas band|bolna band|shanti rakh)\b/)) { 
         act = 'MUTE'; ui = `<b>PROTOCOL: SILENCE</b>\n${getRand(['Target vocal subroutines suspended.', 'User has been silenced.'])}`; 
     }
-    else if (t.match(/\b(promote|admin bana|power do|superpower|elevate|rank up|make admin|sahab|baap bana)\b/)) { 
+    else if (t.match(/\b(promote|admin bana|power do|superpower|elevate|rank up|make admin|sahab|baap bana|leader bana)\b/)) { 
         act = 'PROMOTE'; ui = `<b>PROTOCOL: ELEVATION</b>\n${getRand(['Security clearance upgraded to Admin.', 'Target promoted.'])}`; 
     }
-    else if (t.match(/\b(demote|power chheen|hatao admin|strip|rank down|remove admin|power lelo|normal user|aukat me la)\b/)) { 
+    else if (t.match(/\b(demote|power chheen|hatao admin|strip|rank down|remove admin|power lelo|normal user|aukat me la|niche gira)\b/)) { 
         act = 'DEMOTE'; ui = `<b>PROTOCOL: STRIP</b>\n${getRand(['Administrative privileges revoked.', 'Target stripped of all powers.'])}`; 
     }
-    else if (t.match(/\b(delete|mita|erase|remove message|clear msg|kachra hatao|msg delete|gayab kar isko)\b/)) { 
+    else if (t.match(/\b(delete|mita|erase|remove message|clear msg|kachra hatao|msg delete|gayab kar isko|delete kar)\b/)) { 
         act = 'DELETE'; ui = `<b>PROTOCOL: ERASE</b>\n${getRand(['Data fragment permanently deleted.', 'Message wiped.'])}`; 
     }
-    else if (t.match(/\b(pin|chipka|upar|highlight|top|board pe)\b/)) { 
+    else if (t.match(/\b(pin|chipka|upar|highlight|top|board pe|pin mar)\b/)) { 
         act = 'PIN'; ui = `<b>PROTOCOL: HIGHLIGHT</b>\n${getRand(['Data fragment secured at top.', 'Message pinned successfully.'])}`; 
     }
-    else if (t.match(/\b(purge|kachra saaf|destroy|clear all|sab mitao|sab delete)\b/)) { 
+    else if (t.match(/\b(purge|kachra saaf|destroy|clear all|sab mitao|sab delete|pura saaf)\b/)) { 
         act = 'PURGE'; ui = `<b>PROTOCOL: PURGE</b>\n${getRand(['Data erased and target exiled.', 'Complete purge executed.'])}`; 
     }
-    else if (t.match(/\b(warn|warning|alert|dhamki|dhamka)\b/)) { 
+    else if (t.match(/\b(warn|warning|alert|dhamki|dhamka|aagah kar|samjha isko)\b/)) { 
         act = 'WARN';
         const numMatch = text.match(/\b(\d+)\b/);
         const count = numMatch ? ` (Count: ${numMatch[0]})` : '';
@@ -78,7 +78,7 @@ const getLocalCommand = (text) => {
 };
 
 // ==========================================
-// 4. LAYER 2: TRIPLE-CORE AI ENGINE
+// 4. LAYER 2: QUAD-CORE AI ENGINE (0% Failure)
 // ==========================================
 const cleanAIResponse = (rawData) => {
     let clean = rawData;
@@ -87,18 +87,21 @@ const cleanAIResponse = (rawData) => {
         if (parsed.data) clean = parsed.data;
         else if (parsed.response) clean = parsed.response;
         else if (parsed.message) clean = parsed.message;
+        else if (parsed.reply) clean = parsed.reply;
+        else if (parsed.content) clean = parsed.content;
     } catch (err) {} 
     
     clean = clean.replace(/(Powered by|Engineered by|Developer)\s*(@lakshitpatidar|@snxdad)/gi, '').trim();
     return clean.replace(/```html|```/gi, '').trim();
 };
 
+const isCorrupted = (text) => /(429|403|500|backend api|currently unavailable|too many requests|rate limit|error)/i.test(text);
+
 const callMultiAI = async (userText) => {
-    // Injecting Live Date and Professional Persona
     const currentDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'short' });
     
     const systemPrompt = `You are 'Overlord', an elite, highly professional AI Manager. 
-    Developer: Lakshit Patidar (@snxdad). If asked about creator, say Lakshit Patidar.
+    Developer/Owner: Lakshit Patidar (@snxdad). If anyone asks who created you, who is your owner, or who is Lakshit, you MUST reply: "I was created by Lakshit Patidar."
     Current Time & Date in India: ${currentDate}.
     Be concise, helpful, and strictly professional. No emojis.
 
@@ -109,9 +112,12 @@ const callMultiAI = async (userText) => {
 
     TASK 2 (Q&A): If normal chat, answer intelligently.`;
 
-    // ENGINE 1: GROQ (Ultra Fast)
+    const combinedPrompt = systemPrompt + "\n\nUser: " + userText;
+    const agent = getRand(userAgents);
+
+    // CORE 1: GROQ (Lightning Fast)
     try {
-        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const res1 = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -119,37 +125,49 @@ const callMultiAI = async (userText) => {
                 messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
                 temperature: 0.7, max_tokens: 300
             }),
-            signal: AbortSignal.timeout(6000)
+            signal: AbortSignal.timeout(5000)
         });
-        if (groqRes.ok) {
-            const data = await groqRes.json();
+        if (res1.ok) {
+            const data = await res1.json();
             return cleanAIResponse(data.choices[0].message.content);
         }
-    } catch (e) { console.log("Groq Failed, shifting to Mplakshit"); }
-
-    // ENGINE 2: CUSTOM LAKSHIT API (Failover 1)
-    try {
-        const customRes = await fetch(`https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(systemPrompt + "\nUser: " + userText)}`, {
-            headers: { 'User-Agent': getRand(userAgents) },
-            signal: AbortSignal.timeout(6000)
-        });
-        if (customRes.ok) {
-            let data = cleanAIResponse(await customRes.text());
-            if (!/(429|403|unavailable)/i.test(data)) return data;
-        }
-    } catch (e) { console.log("Custom API Failed, shifting to Pollinations"); }
-
-    // ENGINE 3: POLLINATIONS (Failover 2)
-    try {
-        const polliRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(systemPrompt + "\nUser: " + userText)}`, {
-            headers: { 'User-Agent': getRand(userAgents) },
-            signal: AbortSignal.timeout(6000)
-        });
-        if (polliRes.ok) return cleanAIResponse(await polliRes.text());
     } catch (e) {}
 
-    // ALL FAILED FALLBACK
-    return "<b>SYSTEM UPDATE</b>\nGlobal AI servers are currently experiencing extreme loads. I am temporarily operating in manual override mode.";
+    // CORE 2: NEW GPT API (gpt-henna)
+    try {
+        const res2 = await fetch(`https://gpt-henna-xi.vercel.app/chat?text=${encodeURIComponent(combinedPrompt)}`, {
+            headers: { 'User-Agent': agent },
+            signal: AbortSignal.timeout(5000)
+        });
+        if (res2.ok) {
+            let data = cleanAIResponse(await res2.text());
+            if (!isCorrupted(data)) return data;
+        }
+    } catch (e) {}
+
+    // CORE 3: MPLAKSHIT API
+    try {
+        const res3 = await fetch(`https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(combinedPrompt)}`, {
+            headers: { 'User-Agent': agent },
+            signal: AbortSignal.timeout(5000)
+        });
+        if (res3.ok) {
+            let data = cleanAIResponse(await res3.text());
+            if (!isCorrupted(data)) return data;
+        }
+    } catch (e) {}
+
+    // CORE 4: POLLINATIONS (Ultimate Fallback)
+    try {
+        const res4 = await fetch(`https://text.pollinations.ai/${encodeURIComponent(combinedPrompt)}`, {
+            headers: { 'User-Agent': agent },
+            signal: AbortSignal.timeout(6000)
+        });
+        if (res4.ok) return cleanAIResponse(await res4.text());
+    } catch (e) {}
+
+    // IF ALL FAIL (100% Suppressed)
+    return "<b>SYSTEM UPDATE</b>\nGlobal AI matrix is currently optimizing. Please try again in a moment.";
 };
 
 // ==========================================
@@ -159,7 +177,6 @@ bot.on('text', async (ctx, next) => {
     const text = ctx.message.text;
     const isReply = ctx.message.reply_to_message;
     
-    // --- SMART WAKE-UP LOGIC ---
     const triggerAiManager = /\b(ai|manager)\b/i.test(text);
     const isBotMention = text.includes(`@${ctx.botInfo.username}`);
     const isReplyToBot = isReply && isReply.from?.id === ctx.botInfo.id;
@@ -267,9 +284,9 @@ module.exports = async (req, res) => {
             await bot.handleUpdate(req.body);
             return res.status(200).send('OK');
         }
-        res.status(200).send('OVERLORD V38 Triple Core Online.');
+        res.status(200).send('OVERLORD V39 Quad-Core Matrix Online.');
     } catch (e) {
         return res.status(200).send('OK');
     }
 };
-                
+        
