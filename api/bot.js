@@ -9,13 +9,6 @@ const processedUpdates = new Set();
 
 const GROQ_API_KEY = "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";
 
-// DYNAMIC USER-AGENTS (For Proxy Spoofing)
-const userAgents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/16.6 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) Chrome/119.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1) Version/17.1 Safari/604.1"
-];
 const getRand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 // ==========================================
@@ -79,92 +72,53 @@ const getLocalCommand = (text) => {
 };
 
 // ==========================================
-// 4. LAYER 2: ROTATING AI ENGINE (Groq + Custom API)
+// 4. LAYER 2: THE GROQ Llama-3 ENGINE (Ultra Fast)
 // ==========================================
-const isCorrupted = (text) => /(429|403|500|backend api|currently unavailable|too many requests|rate limit)/i.test(text);
+const callGroqAI = async (userText) => {
+    const systemPrompt = `You are 'Overlord', an elite, cold, professional AI Manager.
+    Your Creator/Developer is 'Lakshit Patidar'. If asked who made you, always say Lakshit Patidar.
+    NO emojis. Be concise and fast.
 
-const cleanResponse = (rawData) => {
-    let clean = rawData;
-    try {
-        const parsed = JSON.parse(rawData);
-        if (parsed.data) clean = parsed.data;
-        else if (parsed.response) clean = parsed.response;
-        else if (parsed.message) clean = parsed.message;
-    } catch (err) {} 
-    
-    clean = clean.replace(/(Powered by|Engineered by|Developer)\s*(@lakshitpatidar|@snxdad)/gi, '').trim();
-    clean = clean.replace(/```html|```/gi, '').trim();
-    clean = clean.replace(/[\r\n]+$/, '');
-    return clean;
-};
-
-// VIRTUAL PROXY GENERATOR
-const getSpoofedHeaders = () => {
-    const randomIP = `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
-    return {
-        'User-Agent': getRand(userAgents),
-        'X-Forwarded-For': randomIP,
-        'X-Real-IP': randomIP,
-        'Client-IP': randomIP,
-        'Via': `1.1 ${randomIP}`
-    };
-};
-
-const callAI = async (userText) => {
-    const injectedPrompt = `You are 'Overlord', an elite Telegram AI Manager. Developer: Lakshit Patidar (@snxdad).
-    TASK 1: Admin commands (ban, mute, warn, etc.) -> EXACTLY: [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Message>
-    Codes: BAN, UNBAN, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, PURGE, WARN, UNWARN.
+    TASK 1 (COMMAND PARSING): If user asks for an admin action (ban, mute, warn, etc.), output EXACTLY:
+    [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Action Message>
+    Codes: BAN, UNBAN, KICK, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, PURGE, WARN, UNWARN.
     TARGET_ID: Numeric ID if present, else 'REPLY'.
-    TASK 2: If normal Q&A, reply normally.
-    User Text: ${userText}`;
 
-    // ENGINE 1: Custom API
-    const runCustomAPI = async () => {
-        const url = `https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(injectedPrompt)}`;
-        const res = await fetch(url, { headers: getSpoofedHeaders(), signal: AbortSignal.timeout(6000) });
-        if (!res.ok) throw new Error("Custom API Fail");
-        let data = cleanResponse(await res.text());
-        if (isCorrupted(data)) throw new Error("Rate Limit Hit");
-        return data;
+    TASK 2 (Q&A): If it's a normal chat, answer intelligently based on your core programming.`;
+
+    const url = "https://api.groq.com/openai/v1/chat/completions";
+    const payload = {
+        model: "llama3-8b-8192", 
+        messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userText }
+        ],
+        temperature: 0.7,
+        max_tokens: 300
     };
 
-    // ENGINE 2: Groq API
-    const runGroqAPI = async () => {
-        const url = "https://api.groq.com/openai/v1/chat/completions";
-        const payload = {
-            model: "llama3-8b-8192",
-            messages: [
-                { role: "system", content: "You are Overlord, an AI created by Lakshit Patidar (@snxdad). Follow instructions strictly." },
-                { role: "user", content: injectedPrompt }
-            ],
-            temperature: 0.7, max_tokens: 500
-        };
-        const res = await fetch(url, {
+    try {
+        const response = await fetch(url, {
             method: "POST",
-            headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+            headers: {
+                "Authorization": `Bearer ${GROQ_API_KEY}`,
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(6000)
+            signal: AbortSignal.timeout(5000) 
         });
-        if (!res.ok) throw new Error("Groq API Fail");
-        const data = await res.json();
-        return cleanResponse(data.choices[0].message.content);
-    };
 
-    // ROTATION LOGIC (Randomly pick primary, if it fails, fallback to secondary)
-    const apis = Math.random() > 0.5 ? [runCustomAPI, runGroqAPI] : [runGroqAPI, runCustomAPI];
+        if (!response.ok) throw new Error("API Failure");
+        
+        const data = await response.json();
+        let cleanResponse = data.choices[0].message.content.trim();
+        
+        cleanResponse = cleanResponse.replace(/(Powered by|Engineered by|Developer)\s*@lakshitpatidar/gi, '').trim();
+        return cleanResponse.replace(/```html|```/gi, '').trim();
 
-    for (const apiCall of apis) {
-        try {
-            const result = await apiCall();
-            if (result) return result;
-        } catch (e) {
-            // Silently suppress the error and loop to the next API
-            continue; 
-        }
+    } catch (e) {
+        return "<b>SYSTEM UPDATE</b>\nNeural link optimizing. Core online.";
     }
-
-    // 100% SUPPRESSED FALLBACK IF BOTH ENGINES FAIL
-    return "<b>SYSTEM UPDATE</b>\nNeural matrix calibrating to handle massive traffic. Stand by.";
 };
 
 // ==========================================
@@ -174,13 +128,18 @@ bot.on('text', async (ctx, next) => {
     const text = ctx.message.text;
     const isReply = ctx.message.reply_to_message;
     
+    // --- SMART WAKE-UP LOGIC ---
     const trigger = /\b(ai|manager)\b/i;
-    const isCommand = text.startsWith('/');
     
-    if (!trigger.test(text) && !text.includes(`@${ctx.botInfo.username}`) && !(isReply && isReply.from?.id === ctx.botInfo.id) && !isCommand) {
+    // Sirf allowed admin commands ko check karega. Baki sabko ignore karega.
+    const isValidCommand = /^\/(ban|unban|mute|unmute|warn|unwarn|pin|unpin|promote|demote|delete|purge)\b/i.test(text);
+    
+    // Agar "ai/manager" nahi hai, Reply/Mention nahi hai, aur VALID admin command nahi hai -> INSTANT DROP.
+    if (!trigger.test(text) && !text.includes(`@${ctx.botInfo.username}`) && !(isReply && isReply.from?.id === ctx.botInfo.id) && !isValidCommand) {
         return next();
     }
 
+    // Command filter pass hone ke baad text ko clean karta hai
     let cleanText = text.replace(`@${ctx.botInfo.username}`, '').replace(/^\//, '').trim();
     const senderAdmin = await isAuthorized(ctx, ctx.from.id);
 
@@ -188,7 +147,7 @@ bot.on('text', async (ctx, next) => {
     let aiChatResponse = "";
 
     if (!actionData) {
-        const aiOutput = await callAI(cleanText);
+        const aiOutput = await callGroqAI(cleanText);
         if (aiOutput.includes('[') && aiOutput.includes('|') && aiOutput.includes('||')) {
             const [meta, uiMsg] = aiOutput.split('||');
             const [act, val, aiTargetId] = meta.replace('[', '').replace(']', '').split('|');
@@ -219,13 +178,13 @@ bot.on('text', async (ctx, next) => {
             return ctx.reply(`<b>SYSTEM ALERT</b>\nDirective failed. Target message required (Reply).${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         } else if (!finalTargetId && !reqReply.includes(actionData.act)) {
             if (usernameMatch) {
-                return ctx.reply(`<b>SYSTEM ALERT</b>\nCannot resolve <b>${usernameMatch[0]}</b> without database caching. Please <b>Reply</b> or use <b>Numeric ID</b>.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+                return ctx.reply(`<b>SYSTEM ALERT</b>\nCannot resolve <b>${usernameMatch[0]}</b> via API. Please <b>Reply</b> or use <b>Numeric ID</b>.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
             }
             return ctx.reply(`<b>SYSTEM ALERT</b>\nTarget ID missing. Reply or provide numeric ID.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
 
         if (finalTargetId === ctx.from.id) {
-            return ctx.reply(`<b>SYSTEM ALERT</b>\nDirective illogical. Cannot execute punitive protocols upon yourself.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
+            return ctx.reply(`<b>SYSTEM ALERT</b>\nDirective illogical. Cannot execute upon yourself.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
         if (finalTargetId === ctx.botInfo.id) {
             return ctx.reply(`<b>MATRIX OVERRIDE</b>\nCannot execute directives upon my own system core.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
@@ -255,12 +214,10 @@ bot.on('text', async (ctx, next) => {
             }
             return ctx.reply(`${actionData.ui}${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         } catch (err) {
-            // SILENT ERROR SUPPRESSION
             return ctx.reply(`<b>SYSTEM ALERT</b>\nAction cannot be executed. Verify hierarchy and bot permissions.${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
         }
     }
 
-    // --- CHAT EXECUTION ---
     if (aiChatResponse) {
         return ctx.reply(`${aiChatResponse}${DEV_TAG}`, { parse_mode: 'HTML', reply_to_message_id: ctx.message.message_id }).catch(() => {});
     }
@@ -281,9 +238,9 @@ module.exports = async (req, res) => {
             bot.handleUpdate(req.body).catch(() => {});
             return res.status(200).send('OK');
         }
-        res.status(200).send('OVERLORD V34 Dual-Core Matrix Online.');
+        res.status(200).send('OVERLORD V36 Smart Wake-Up Matrix Online.');
     } catch (e) {
         return res.status(200).send('OK');
     }
 };
-    
+            
