@@ -9,6 +9,12 @@ const processedUpdates = new Set();
 
 const GROQ_API_KEY = "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";
 
+// Spoofer to prevent 403s on APIs
+const userAgents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/16.6 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) Chrome/119.0.0.0 Safari/537.36"
+];
 const getRand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 // ==========================================
@@ -22,7 +28,7 @@ const isAuthorized = async (ctx, userId) => {
 };
 
 // ==========================================
-// 3. LAYER 1: MASSIVE REGEX MATRIX (Max Level)
+// 3. LAYER 1: MASSIVE REGEX MATRIX
 // ==========================================
 const getLocalCommand = (text) => {
     const t = text.toLowerCase();
@@ -72,53 +78,78 @@ const getLocalCommand = (text) => {
 };
 
 // ==========================================
-// 4. LAYER 2: THE GROQ Llama-3 ENGINE (Ultra Fast)
+// 4. LAYER 2: TRIPLE-CORE AI ENGINE
 // ==========================================
-const callGroqAI = async (userText) => {
-    const systemPrompt = `You are 'Overlord', an elite, cold, professional AI Manager.
-    Your Developer is Lakshit Patidar (@snxdad). If asked who made you, always say Lakshit Patidar.
-    NO emojis. Be concise and fast.
+const cleanAIResponse = (rawData) => {
+    let clean = rawData;
+    try {
+        const parsed = JSON.parse(rawData);
+        if (parsed.data) clean = parsed.data;
+        else if (parsed.response) clean = parsed.response;
+        else if (parsed.message) clean = parsed.message;
+    } catch (err) {} 
+    
+    clean = clean.replace(/(Powered by|Engineered by|Developer)\s*(@lakshitpatidar|@snxdad)/gi, '').trim();
+    return clean.replace(/```html|```/gi, '').trim();
+};
+
+const callMultiAI = async (userText) => {
+    // Injecting Live Date and Professional Persona
+    const currentDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'short' });
+    
+    const systemPrompt = `You are 'Overlord', an elite, highly professional AI Manager. 
+    Developer: Lakshit Patidar (@snxdad). If asked about creator, say Lakshit Patidar.
+    Current Time & Date in India: ${currentDate}.
+    Be concise, helpful, and strictly professional. No emojis.
 
     TASK 1 (COMMAND PARSING): If user asks for an admin action (ban, mute, warn, etc.), output EXACTLY:
     [ACTION_CODE|0|TARGET_ID] || <b>PROTOCOL: SYSTEM</b>\n<Action Message>
     Codes: BAN, UNBAN, KICK, MUTE, UNMUTE, PROMOTE, DEMOTE, DELETE, PIN, UNPIN, PURGE, WARN, UNWARN.
     TARGET_ID: Numeric ID if present, else 'REPLY'.
 
-    TASK 2 (Q&A): If it's a normal chat, answer intelligently based on your core programming.`;
+    TASK 2 (Q&A): If normal chat, answer intelligently.`;
 
-    const url = "https://api.groq.com/openai/v1/chat/completions";
-    const payload = {
-        model: "llama3-8b-8192", 
-        messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userText }
-        ],
-        temperature: 0.7,
-        max_tokens: 300
-    };
-
+    // ENGINE 1: GROQ (Ultra Fast)
     try {
-        const response = await fetch(url, {
+        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
-            headers: {
-                "Authorization": `Bearer ${GROQ_API_KEY}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(6000) 
+            headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "llama3-8b-8192", 
+                messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
+                temperature: 0.7, max_tokens: 300
+            }),
+            signal: AbortSignal.timeout(6000)
         });
+        if (groqRes.ok) {
+            const data = await groqRes.json();
+            return cleanAIResponse(data.choices[0].message.content);
+        }
+    } catch (e) { console.log("Groq Failed, shifting to Mplakshit"); }
 
-        if (!response.ok) throw new Error("API Failure");
-        
-        const data = await response.json();
-        let cleanResponse = data.choices[0].message.content.trim();
-        
-        cleanResponse = cleanResponse.replace(/(Powered by|Engineered by|Developer)\s*@lakshitpatidar/gi, '').trim();
-        return cleanResponse.replace(/```html|```/gi, '').trim();
+    // ENGINE 2: CUSTOM LAKSHIT API (Failover 1)
+    try {
+        const customRes = await fetch(`https://mplakshit.vercel.app/api/ai?prompt=${encodeURIComponent(systemPrompt + "\nUser: " + userText)}`, {
+            headers: { 'User-Agent': getRand(userAgents) },
+            signal: AbortSignal.timeout(6000)
+        });
+        if (customRes.ok) {
+            let data = cleanAIResponse(await customRes.text());
+            if (!/(429|403|unavailable)/i.test(data)) return data;
+        }
+    } catch (e) { console.log("Custom API Failed, shifting to Pollinations"); }
 
-    } catch (e) {
-        return "<b>SYSTEM UPDATE</b>\nNeural link optimizing. Core online.";
-    }
+    // ENGINE 3: POLLINATIONS (Failover 2)
+    try {
+        const polliRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(systemPrompt + "\nUser: " + userText)}`, {
+            headers: { 'User-Agent': getRand(userAgents) },
+            signal: AbortSignal.timeout(6000)
+        });
+        if (polliRes.ok) return cleanAIResponse(await polliRes.text());
+    } catch (e) {}
+
+    // ALL FAILED FALLBACK
+    return "<b>SYSTEM UPDATE</b>\nGlobal AI servers are currently experiencing extreme loads. I am temporarily operating in manual override mode.";
 };
 
 // ==========================================
@@ -132,14 +163,12 @@ bot.on('text', async (ctx, next) => {
     const triggerAiManager = /\b(ai|manager)\b/i.test(text);
     const isBotMention = text.includes(`@${ctx.botInfo.username}`);
     const isReplyToBot = isReply && isReply.from?.id === ctx.botInfo.id;
-    // Sirf core admin slash commands. Faltu (/tg, /num) yahan se drop ho jayenge.
     const isSlashAdminCmd = /^\/(ban|unban|mute|unmute|warn|unwarn|pin|unpin|promote|demote|delete|purge)\b/i.test(text);
 
     if (!triggerAiManager && !isBotMention && !isReplyToBot && !isSlashAdminCmd) {
         return next();
     }
 
-    // Slash command se slash hatake clean text banata hai jisse Local matrix me scan ho sake
     let cleanText = text.replace(`@${ctx.botInfo.username}`, '').replace(/^\//, '').trim();
     const senderAdmin = await isAuthorized(ctx, ctx.from.id);
 
@@ -147,7 +176,7 @@ bot.on('text', async (ctx, next) => {
     let aiChatResponse = "";
 
     if (!actionData) {
-        const aiOutput = await callGroqAI(cleanText);
+        const aiOutput = await callMultiAI(cleanText);
         if (aiOutput.includes('[') && aiOutput.includes('|') && aiOutput.includes('||')) {
             const [meta, uiMsg] = aiOutput.split('||');
             const [act, val, aiTargetId] = meta.replace('[', '').replace(']', '').split('|');
@@ -235,15 +264,12 @@ module.exports = async (req, res) => {
                 processedUpdates.add(updateId);
                 if (processedUpdates.size > 500) processedUpdates.clear();
             }
-            
-            // 🔥 THE FATAL FIX: Using 'await' guarantees Vercel won't kill the function until reply is sent.
             await bot.handleUpdate(req.body);
-            
             return res.status(200).send('OK');
         }
-        res.status(200).send('OVERLORD V37 Matrix Online.');
+        res.status(200).send('OVERLORD V38 Triple Core Online.');
     } catch (e) {
         return res.status(200).send('OK');
     }
 };
-            
+                
